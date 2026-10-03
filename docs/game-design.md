@@ -11,7 +11,7 @@ A browser detective game. You get a case file, gather evidence, question suspect
 2. **Investigate** locations and examine evidence to find clues
 3. **Interview** suspects and pick dialogue questions
 4. Log findings in the **notebook** and link clues together on a **board**
-5. **Accuse**: pick culprit, motive, method and get graded
+5. **Accuse**: write out a free-text theory (culprit, motive, method); AI grades it, with a dropdown fallback
 
 ## Screens
 - Title and case select
