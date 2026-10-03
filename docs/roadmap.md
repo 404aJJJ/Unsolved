@@ -17,15 +17,15 @@ Stack by lane: **React + Vite + TypeScript** for all frontend work (shell, apps,
 ## Phases (each is shippable on its own)
 
 ### 1. Foundation (frontend lead)
-- [ ] Scaffold Vite + React + TS in `/web` (replace the placeholder files)
-- [ ] Vista shell: wallpaper, taskbar, start orb, clock, draggable windows (store of window state)
-- [ ] Desktop icons: Files, Mail, Messages, Notes, Case Board, Submit Report
-- [ ] Content components: `EmailView`, `MessageThread`, `DocView`, `InterviewView`
-- [ ] File registry with stable IDs `01`-`06`, locked state in a store
-- [ ] Mock API in the frontend so work never blocks on the backend
+- [x] Scaffold Vite + React + TS in `/web` (replace the placeholder files)
+- [x] Vista shell: wallpaper, taskbar, start orb, clock, draggable windows (store of window state)
+- [x] Desktop icons: Files, Mail, Messages, Notes, Case Board, Submit Report
+- [x] Content components: `EmailView`, `MessageThread`, `DocView`, `InterviewView`
+- [x] File registry with stable IDs `01`-`06`, locked state in a store
+- [x] Mock API in the frontend so work never blocks on the backend
 
 ### 2. Contract and content (can start immediately, in parallel)
-- [ ] `docs/api.md`: endpoints and JSON shapes (frontend, backend and Java lane all code to this)
+- [x] `docs/api.md`: endpoints and JSON shapes (frontend, backend and Java lane all code to this)
 - [ ] Convert the six evidence Google Docs to structured content (markdown with front matter, see case-format.md)
 - [ ] Resolve the story issues in the private issues list before anyone builds on the text
 - [ ] Remove the in-doc authoring note from file 03 before it reaches the app

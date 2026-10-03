@@ -5,3 +5,4 @@
 - [case-format.md](case-format.md) – how a case is written (JSON schema)
 - [roadmap.md](roadmap.md) – hackathon timeline and who owns what
 - [tracks.md](tracks.md) – prize tracks and how the game fits them
+- [api.md](api.md) – API contract between frontend and backend
