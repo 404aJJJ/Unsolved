@@ -39,4 +39,4 @@ Why a backend: a static site ships the answer in its JSON, so players can read t
 
 Possible SQL mechanic: a bank-records terminal where the player filters or queries access logs, camera timestamps and transactions. Offer point-and-click filters alongside it so it is not SQL-only.
 
-Plan: static MVP first, then FastAPI + SQLite if time allows.
+Plan: backend is now required (unlock validation and accusation grading must be server-side). Static JSON only as a mock while the API is built.

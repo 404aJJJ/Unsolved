@@ -38,3 +38,8 @@ npm-debug.log*
 .vscode/
 .idea/
 *.swp
+
+# Private spoilers / answers
+private/
+docs/private/
+server/private/
