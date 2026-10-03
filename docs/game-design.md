@@ -10,20 +10,21 @@ Spoiler policy: the solution, culprit and unlock answers are NOT in this repo's 
 ## Core idea
 The whole game is a **desktop operating system** the player pokes around in. Evidence is files. Locked files are opened by short **minigames**. Information found in one file is the key to the next. Finally the player writes up their theory and picks supporting evidence.
 
-## The desktop
-Icons on the desktop (each opens a window; on mobile each opens full-screen):
+## UI
+Windows Vista / Aero-style desktop. Full direction in [ui-direction.md](ui-direction.md).
+
+Apps (icons on the desktop, each opens a draggable window):
 
 | App | Contents |
 |---|---|
-| **Files** | The six evidence files (01-06) shown as folders/docs, locked ones with a padlock |
-| **Mail** | Appraisal correspondence, visitor registration, lab requests (rendered as real email UI) |
+| **Files** | The six evidence files (01-06), padlocks on locked ones |
+| **Mail** | Appraisal correspondence, visitor registration, lab requests |
 | **Messages** | Texts between suspects, chat threads |
-| **Notes** | The player's notebook plus a clipboard of "clipped" snippets from any file |
-| **Case Board** | Six suspect cards; pin clues and timeline items to them |
-| **Terminal** | Where decrypt-style locks run |
-| **Submit Report** | Final accusation (locked until all files are opened, but not auto-triggered) |
+| **Notes** | Notebook plus clipboard of clipped snippets |
+| **Case Board** | Six suspect cards; pin clues to them |
+| **Submit Report** | Final accusation / cross-examination (not auto-triggered) |
 
-Desktop (primary): draggable, stackable windows, taskbar, clock. Mobile (stretch): phone-style app grid, one app at a time. Build the window manager as simple as possible; do not spend hours on resize/snap.
+Desktop only for now; mobile is on hold.
 
 ## Evidence structure (six files, stable IDs `01`-`06`)
 - `01` Incident Report, `02` Interviews and Messages, `03` Appraisal Correspondence: open at start
@@ -31,33 +32,35 @@ Desktop (primary): draggable, stackable windows, taskbar, clock. Mobile (stretch
 - `06`: locked, needs a reference found in `05`
 - No lock ever requires already knowing the culprit. Each unlock answer is found by reading an earlier file.
 
-## Minigame locks
-Each lock is one pluggable component with the same interface: it shows a prompt, takes the player's input, asks the server to validate, and offers hints. The **answer is always something retrievable from a prior file**, so the minigame is a skin over a retrieval puzzle, not a replacement for it.
+## Minigames
+Locks are pluggable components with one interface: prompt, input, server validation, hints. **The answer is always retrievable from a prior file**, so a minigame is a skin over a retrieval puzzle.
 
-| File | Lock style | Minigame idea | Answer type |
+| Where | Minigame | Inspiration | Answer |
 |---|---|---|---|
-| 04 | Numeric | **Keypad / safe dial**: spin four digits; confirm by holding | 4 digits |
-| 05 | Keyword | **Decrypt terminal**: letters scrambled or cipher-wheel; player types or arranges the codename | Word |
-| 06 | Numeric | **Magnifier**: drag a lens over the gem image to find the engraving, then enter the digits | 4 digits |
+| File 04 lock | **PIN dialog**: simple permission-prompt keypad | Vista UAC | 4 digits |
+| File 05 lock | **Hack**: scrolling character grid; lock onto the codename's letters in order before the timer ends | GTA Online hacking | Word |
+| File 06 lock | **Magnifier**: drag a lens over the gem image to find the engraving, enter the digits | Arkham-style scan | 4 digits |
+| Submit Report | **Cross-examination**: statements from the suspect's interview shown one at a time; player picks Press or Present Evidence on the contradicting one | Ace Attorney | Evidence choice |
+
+Cross-examination replaces the plain evidence slots in the accusation. Three contradictions map to the three claims: opportunity, the false alibi, the matching replica. Wrong presentations cost "credibility" (a soft penalty that affects the final rating). There is no game over.
 
 Rules every lock follows:
-- Trim whitespace and compare case-insensitively
-- Numeric answers are four-digit strings
+- Trim whitespace; compare case-insensitively; numeric answers are four-digit strings
 - Plain text input is always available as a fallback, so a broken minigame never blocks progress
-- Hint ladder, offered progressively after wrong attempts, with **no lockout**
-- Written text of the clue must stay readable. The magnifier never depends on image quality
+- Hint ladder, offered progressively after wrong attempts, with no lockout
+- The written clue stays readable; the magnifier never depends on image quality
+- The hack minigame has no hard fail: running out of time restarts it
 
 ### The "clip" mechanic (cross-file linking)
 Any text in an open file can be **clipped** into Notes. Locks accept a clipped snippet by drag-and-drop. This makes "use content from files you already unlocked to open the next one" a literal, tactile action, and it doubles as the note-taking system.
 
 ## Accusation (end game)
-Opening file 06 does not end the game. The player opens **Submit Report** and:
+Opening file 06 does not end the game. The player opens **Submit Report**:
 1. Names the culprit
-2. Attaches supporting evidence to three claims: **opportunity**, **the false alibi**, **the matching replica**
+2. Cross-examines the suspect: present the right evidence at the right statement for opportunity, the false alibi and the matching replica
 3. Writes a free-text theory of how it happened
 
-Server-side Gemini grades the theory against a hidden rubric (see tracks.md). The result screen **explains the chain of reasoning**, not just right/wrong, then plays the completion epilogue (recovery of the stone lives here, not as an evidence file).
-Fallback if the AI is down: dropdown culprit plus evidence slots, graded by exact match.
+Server-side Gemini grades the theory against a hidden rubric (see tracks.md). The result screen **explains the chain of reasoning**, then plays the epilogue (recovery of the stone lives here, not in an evidence file). Fallback if the AI is down: dropdown culprit plus the cross-examination, graded by exact match.
 
 ## Content principles
 - Text-first. Emails and texts are web components, not images
@@ -65,19 +68,14 @@ Fallback if the AI is down: dropdown culprit plus evidence slots, graded by exac
 - Keep file IDs stable. Keep solution text out of the player-facing UI and out of the client bundle
 
 ## Scope
-MVP (must ship)
-- Desktop shell with Files, Mail, Messages, Notes
-- Six evidence files rendered
-- All three locks working with plain-input fallback and hint ladder
-- Submit Report with evidence slots and grading
+Build order (each step is shippable on its own):
+1. Vista shell: windows, taskbar, Files, Mail, Messages, Notes
+2. Six files rendered; locks as plain inputs with hint ladder
+3. Submit Report with plain evidence slots and grading
+4. Minigames: GTA-style hack, then cross-examination, then magnifier
+5. Clip-and-drag, Case Board, Gemini grading, ElevenLabs voice
 
-Next
-- The three minigame skins (keypad first, decrypt second, magnifier third)
-- Clip-and-drag, Case Board
-- Gemini grading, ElevenLabs narration/voiced interviews
-
-Stretch
-- Mobile app-grid layout, sound, additional cases
+Stretch: sound, mobile, extra cases.
 
 ## Playtest
 Before the demo, a teammate who did not write the clues plays from files 01-03. Check: every unlock answer is findable, every timestamp agrees across files, and the final explanation rests on independent evidence rather than motive alone.
