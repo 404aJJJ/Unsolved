@@ -1,0 +1,10 @@
+:root {
+  --paper: #e8dcc0;
+  --ink: #1d1a16;
+  --accent: #8b1e1e;
+  --desk: #2b2622;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--desk); color: var(--ink); font-family: Georgia, serif; }
+#app { max-width: 960px; margin: 0 auto; padding: 24px; }
+.casefile { background: var(--paper); padding: 24px; border-radius: 4px; box-shadow: 0 4px 16px #0008; }

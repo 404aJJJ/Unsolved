@@ -1,0 +1,40 @@
+# AI / agent / planning files (local only)
+project.md
+PROJECT.md
+agent.md
+AGENT.md
+agents.md
+AGENTS.md
+claude.md
+CLAUDE.md
+GEMINI.md
+.claude/
+.cursor/
+.cursorrules
+.windsurfrules
+.aider*
+notes.md
+TODO.md
+scratch/
+
+# Dependencies / build
+node_modules/
+dist/
+build/
+.vite/
+.cache/
+
+# Env / secrets
+.env
+.env.*
+!.env.example
+
+# Logs
+*.log
+npm-debug.log*
+
+# OS / editor
+.DS_Store
+.vscode/
+.idea/
+*.swp

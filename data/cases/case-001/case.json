@@ -1,0 +1,12 @@
+{
+  "id": "case-001",
+  "title": "The Missing Ledger",
+  "summary": "Placeholder case. Replace with the real story.",
+  "evidence": [
+    { "id": "ev-1", "name": "Torn note", "description": "A half-burned note found in the fireplace." }
+  ],
+  "suspects": [
+    { "id": "s-1", "name": "Placeholder Suspect", "bio": "Had access to the study that night." }
+  ],
+  "solution": { "culprit": "s-1" }
+}
