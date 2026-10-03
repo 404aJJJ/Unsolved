@@ -24,3 +24,19 @@ Game type: UI-heavy and state-heavy (evidence boards, dialogue, notebook, accusa
 ## Decision needed from the team
 1. Does everyone know React? If not, pick whatever 2 of 3 know best.
 2. Tailwind or plain CSS?
+
+## Backend options (optional, not needed for MVP)
+The browser side must be JS/TS. Other languages can only run behind it as an API.
+
+| Option | Use | Cost |
+|---|---|---|
+| Python (FastAPI) | Serve cases, check accusations server-side, saves, leaderboard | Second app to deploy; fastest to write |
+| SQL (SQLite/Postgres) | Store cases, suspects, clues, saves | Only useful once there is a backend |
+| Java (Spring Boot) | Same as FastAPI | Slowest setup; only if the team knows Java |
+| Pyodide (Python in browser) | Python client-side | Heavy; skip |
+
+Why a backend: a static site ships the answer in its JSON, so players can read the culprit in devtools. A server that only returns right or wrong avoids that.
+
+Possible SQL mechanic: a bank-records terminal where the player filters or queries access logs, camera timestamps and transactions. Offer point-and-click filters alongside it so it is not SQL-only.
+
+Plan: static MVP first, then FastAPI + SQLite if time allows.

@@ -1,5 +1,8 @@
 # Game design (draft)
 
+## Premise
+A bank has been robbed. The player is the detective who must work out **who did it**, how, and why. Story, characters, setting and tone are being written by other teammates, so this doc covers design only.
+
 ## Pitch
 A browser detective game. You get a case file, gather evidence, question suspects, and name the culprit. Think Carmen Sandiego's clue-chasing crossed with Unsolved Case Files' deduction.
 
@@ -36,6 +39,13 @@ A browser detective game. You get a case file, gather evidence, question suspect
 - Sound and ambience
 - Mobile polish and PWA
 - Hint system, achievements
+
+## Bank-robbery fit (ideas, not decisions)
+- Locations: lobby, vault, manager's office, back alley, security room
+- Evidence types: camera footage timestamps, vault access logs, teller records, fingerprints, getaway-car sighting
+- Suspect types: insider (employee), outside crew, customer with a grudge, red herring
+- Natural contradiction mechanic: an alibi that conflicts with the access log
+- Optional records terminal: filter or query logs and transactions (SQL-style) to find anomalies
 
 ## Open questions
 - Tone: noir, modern, cozy mystery, sci-fi?
