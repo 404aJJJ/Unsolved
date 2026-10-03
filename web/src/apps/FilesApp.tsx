@@ -2,12 +2,14 @@ import { useState } from 'react'
 import { FILES } from '../content/case'
 import type { FileId } from '../content/types'
 import { useGame } from '../store/game'
+import { useWindows } from '../store/windows'
 import { DocIcon, FolderIcon } from '../shell/Icons'
 import { openFile } from './files'
 
 export function FilesApp() {
   const unlocked = useGame((s) => s.unlocked)
   const opened = useGame((s) => s.opened)
+  const justUnlocked = useWindows((s) => s.justUnlocked)
   const [selected, setSelected] = useState<FileId>('01')
   const locked = (id: FileId) => !!FILES.find((f) => f.id === id)?.lock && !unlocked[id]
   const sel = FILES.find((f) => f.id === selected)!
@@ -42,12 +44,13 @@ export function FilesApp() {
           </div>
         </nav>
         <div className="explorer__grid" role="listbox" aria-label="Evidence files">
-          {FILES.map((f) => (
+          {FILES.map((f, i) => (
             <button
               key={f.id}
+              style={{ animationDelay: `${i * 35}ms` }}
               role="option"
               aria-selected={selected === f.id}
-              className={`file ${selected === f.id ? 'file--sel' : ''} ${locked(f.id) ? 'file--locked' : ''}`}
+              className={`file ${selected === f.id ? 'file--sel' : ''} ${locked(f.id) ? 'file--locked' : ''} ${justUnlocked === f.id ? 'file--unlocked' : ''}`}
               onClick={() => setSelected(f.id)}
               onDoubleClick={() => openFile(f.id)}
             >

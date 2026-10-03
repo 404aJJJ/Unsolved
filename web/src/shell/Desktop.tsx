@@ -43,14 +43,16 @@ function CaseGadget() {
     <aside className="gadget" aria-label="Case status">
       <div className="gadget__title">Case PB-062</div>
       <div className="gadget__big">
-        {count}
+        <span key={count} className="gadget__num">
+          {count}
+        </span>
         <small>/6</small>
       </div>
       <div className="gadget__label">records recovered</div>
       <div className="progress progress--dark">
         <div className="progress__fill" style={{ width: `${(count / 6) * 100}%` }} />
       </div>
-      <div className="gadget__status">{count === 6 ? 'Ready to report' : 'Investigation open'}</div>
+      <div className={`gadget__status ${count === 6 ? 'gadget__status--ready' : ''}`}>{count === 6 ? 'Ready to report' : 'Investigation open'}</div>
     </aside>
   )
 }
@@ -61,8 +63,8 @@ export function Desktop({ onLogOff }: { onLogOff: () => void }) {
     <div className="desktop">
       <div className="wallpaper" aria-hidden />
       <div className="icons">
-        {DESKTOP_ICONS.map((d) => (
-          <button key={d.app} className="dicon" onDoubleClick={() => open(d.app)} onKeyDown={(e) => e.key === 'Enter' && open(d.app)}>
+        {DESKTOP_ICONS.map((d, i) => (
+          <button key={d.app} style={{ animationDelay: `${150 + i * 45}ms` }} className="dicon" onDoubleClick={() => open(d.app)} onKeyDown={(e) => e.key === 'Enter' && open(d.app)}>
             <AppIcon app={d.app} />
             <span>{d.label}</span>
           </button>

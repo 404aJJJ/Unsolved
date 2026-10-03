@@ -3,6 +3,9 @@ import type { FileId } from '../content/types'
 
 export type AppId = 'files' | 'mail' | 'messages' | 'notes' | 'board' | 'report' | 'doc'
 
+// Animation phase a window is in; the Window component finishes it on animationend.
+export type WinAnim = 'open' | 'close' | 'min' | 'restore' | null
+
 export interface Win {
   id: string
   app: AppId
@@ -14,7 +17,14 @@ export interface Win {
   z: number
   min: boolean
   max: boolean
+  anim: WinAnim
   fileId?: FileId
+}
+
+export interface Toast {
+  id: number
+  title: string
+  body: string
 }
 
 export const APP_META: Record<AppId, { title: string; w: number; h: number }> = {
@@ -31,30 +41,45 @@ interface WindowState {
   windows: Win[]
   topZ: number
   lockFor: FileId | null
+  justUnlocked: FileId | null
+  toasts: Toast[]
   open: (app: AppId, opts?: { fileId?: FileId; title?: string }) => void
   focus: (id: string) => void
-  close: (id: string) => void
-  toggleMin: (id: string) => void
+  requestClose: (id: string) => void
+  requestMin: (id: string) => void
+  finishAnim: (id: string) => void
   toggleMax: (id: string) => void
   move: (id: string, x: number, y: number) => void
   showLock: (id: FileId | null) => void
+  flashUnlocked: (id: FileId) => void
+  pushToast: (t: Omit<Toast, 'id'>) => void
+  dismissToast: (id: number) => void
   closeAll: () => void
 }
 
+// The focused window is the top-most one that is visible and not on its way out.
+export function activeWindowId(windows: Win[]): string | null {
+  let best: Win | null = null
+  for (const w of windows) if (!w.min && w.anim !== 'min' && w.anim !== 'close' && (!best || w.z > best.z)) best = w
+  return best?.id ?? null
+}
+
 let cascade = 0
+let toastSeq = 0
+
+const patch = (windows: Win[], id: string, p: Partial<Win>) => windows.map((w) => (w.id === id ? { ...w, ...p } : w))
 
 export const useWindows = create<WindowState>((set, get) => ({
   windows: [],
   topZ: 10,
   lockFor: null,
+  justUnlocked: null,
+  toasts: [],
   open: (app, opts = {}) => {
     const id = opts.fileId ? `${app}-${opts.fileId}` : app
     const existing = get().windows.find((w) => w.id === id)
     if (existing) {
-      set((s) => ({
-        topZ: s.topZ + 1,
-        windows: s.windows.map((w) => (w.id === id ? { ...w, min: false, z: s.topZ + 1 } : w)),
-      }))
+      get().focus(id)
       return
     }
     const meta = APP_META[app]
@@ -62,27 +87,47 @@ export const useWindows = create<WindowState>((set, get) => ({
     const vh = window.innerHeight - 40
     const w = Math.min(meta.w, vw - 40)
     const h = Math.min(meta.h, vh - 40)
-    const offset = (cascade++ % 6) * 28
-    const x = Math.max(10, Math.round((vw - w) / 2 - 120 + offset))
-    const y = Math.max(10, Math.round((vh - h) / 2 - 60 + offset))
+    const offset = (cascade++ % 6) * 26
+    const x = Math.max(10, Math.round((vw - w) / 2 - 100 + offset))
+    const y = Math.max(10, Math.round((vh - h) / 2 - 50 + offset))
     set((s) => ({
       topZ: s.topZ + 1,
       windows: [
         ...s.windows,
-        { id, app, title: opts.title ?? meta.title, x, y, w, h, z: s.topZ + 1, min: false, max: false, fileId: opts.fileId },
+        { id, app, title: opts.title ?? meta.title, x, y, w, h, z: s.topZ + 1, min: false, max: false, anim: 'open', fileId: opts.fileId },
       ],
     }))
   },
   focus: (id) =>
     set((s) => {
       const win = s.windows.find((w) => w.id === id)
-      if (!win || (win.z === s.topZ && !win.min)) return s
-      return { topZ: s.topZ + 1, windows: s.windows.map((w) => (w.id === id ? { ...w, min: false, z: s.topZ + 1 } : w)) }
+      if (!win) return s
+      if (win.min) return { topZ: s.topZ + 1, windows: patch(s.windows, id, { min: false, anim: 'restore', z: s.topZ + 1 }) }
+      if (win.z === s.topZ) return s
+      return { topZ: s.topZ + 1, windows: patch(s.windows, id, { z: s.topZ + 1 }) }
     }),
-  close: (id) => set((s) => ({ windows: s.windows.filter((w) => w.id !== id) })),
-  toggleMin: (id) => set((s) => ({ windows: s.windows.map((w) => (w.id === id ? { ...w, min: !w.min } : w)) })),
-  toggleMax: (id) => set((s) => ({ windows: s.windows.map((w) => (w.id === id ? { ...w, max: !w.max } : w)) })),
-  move: (id, x, y) => set((s) => ({ windows: s.windows.map((w) => (w.id === id ? { ...w, x, y } : w)) })),
+  requestClose: (id) => set((s) => ({ windows: patch(s.windows, id, { anim: 'close' }) })),
+  requestMin: (id) => set((s) => ({ windows: patch(s.windows, id, { anim: 'min' }) })),
+  finishAnim: (id) =>
+    set((s) => {
+      const win = s.windows.find((w) => w.id === id)
+      if (!win) return s
+      if (win.anim === 'close') return { windows: s.windows.filter((w) => w.id !== id) }
+      if (win.anim === 'min') return { windows: patch(s.windows, id, { anim: null, min: true }) }
+      return { windows: patch(s.windows, id, { anim: null }) }
+    }),
+  toggleMax: (id) => set((s) => ({ windows: patch(s.windows, id, { max: !s.windows.find((w) => w.id === id)?.max }) })),
+  move: (id, x, y) => set((s) => ({ windows: patch(s.windows, id, { x, y }) })),
   showLock: (lockFor) => set({ lockFor }),
-  closeAll: () => set({ windows: [], lockFor: null }),
+  flashUnlocked: (id) => {
+    set({ justUnlocked: id })
+    setTimeout(() => get().justUnlocked === id && set({ justUnlocked: null }), 1800)
+  },
+  pushToast: (t) => {
+    const id = ++toastSeq
+    set((s) => ({ toasts: [...s.toasts, { ...t, id }] }))
+    setTimeout(() => get().dismissToast(id), 5000)
+  },
+  dismissToast: (id) => set((s) => ({ toasts: s.toasts.filter((t) => t.id !== id) })),
+  closeAll: () => set({ windows: [], lockFor: null, toasts: [] }),
 }))

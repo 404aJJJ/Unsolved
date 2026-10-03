@@ -45,7 +45,7 @@ export function MailApp() {
           </li>
         ))}
       </ul>
-      <div className="mail__read">
+      <div className="mail__read" key={email.id}>
         <EmailView email={email} />
       </div>
     </div>
@@ -71,7 +71,7 @@ export function MessagesApp() {
       </ul>
       <div className="im__chat">
         <div className="im__chathead">{thread.title}</div>
-        <div className="im__scroll">
+        <div className="im__scroll" key={thread.id}>
           <MessageThread msgs={thread.msgs} />
         </div>
         <div className="im__compose">

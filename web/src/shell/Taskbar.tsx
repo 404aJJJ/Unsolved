@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useGame } from '../store/game'
-import { useWindows, type AppId } from '../store/windows'
+import { activeWindowId, useWindows, type AppId } from '../store/windows'
 import { AppIcon, MagnifierGlyph } from './Icons'
 
 const START_ITEMS: { app: AppId; label: string; desc: string }[] = [
@@ -22,7 +22,8 @@ function useClock() {
 }
 
 export function Taskbar({ onLogOff }: { onLogOff: () => void }) {
-  const { windows, topZ, open, focus, toggleMin } = useWindows()
+  const { windows, open, focus, requestMin, toasts, dismissToast } = useWindows()
+  const activeId = activeWindowId(windows)
   const reset = useGame((s) => s.reset)
   const [startOpen, setStartOpen] = useState(false)
   const now = useClock()
@@ -33,9 +34,10 @@ export function Taskbar({ onLogOff }: { onLogOff: () => void }) {
         <div className="start-scrim" onPointerDown={() => setStartOpen(false)}>
           <div className="start" onPointerDown={(e) => e.stopPropagation()}>
             <div className="start__left">
-              {START_ITEMS.map((it) => (
+              {START_ITEMS.map((it, i) => (
                 <button
                   key={it.app}
+                  style={{ animationDelay: `${40 + i * 25}ms` }}
                   className="start__item"
                   onClick={() => {
                     open(it.app)
@@ -84,12 +86,13 @@ export function Taskbar({ onLogOff }: { onLogOff: () => void }) {
         </button>
         <div className="taskbar__tasks">
           {windows.map((w) => {
-            const active = w.z === topZ && !w.min
+            const active = w.id === activeId
             return (
               <button
                 key={w.id}
-                className={`task ${active ? 'task--active' : ''}`}
-                onClick={() => (active ? toggleMin(w.id) : focus(w.id))}
+                data-task={w.id}
+                className={`task ${active ? 'task--active' : ''} ${w.anim === 'close' ? 'task--leaving' : ''}`}
+                onClick={() => (active ? requestMin(w.id) : focus(w.id))}
                 title={w.title}
               >
                 <AppIcon app={w.app} size={18} />
@@ -97,6 +100,17 @@ export function Taskbar({ onLogOff }: { onLogOff: () => void }) {
               </button>
             )
           })}
+        </div>
+        <div className="toasts" aria-live="polite">
+          {toasts.map((t) => (
+            <button key={t.id} className="toast" onClick={() => dismissToast(t.id)}>
+              <span className="toast__icon">✓</span>
+              <span>
+                <strong>{t.title}</strong>
+                <span>{t.body}</span>
+              </span>
+            </button>
+          ))}
         </div>
         <div className="tray">
           <span className="tray__time">{now.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}</span>

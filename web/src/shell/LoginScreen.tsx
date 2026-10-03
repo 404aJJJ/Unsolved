@@ -4,12 +4,14 @@ import { MagnifierGlyph } from './Icons'
 
 export function LoginScreen({ onLogin }: { onLogin: () => void }) {
   const [welcome, setWelcome] = useState(false)
+  const [leaving, setLeaving] = useState(false)
   const start = () => {
     setWelcome(true)
-    setTimeout(onLogin, 1200)
+    setTimeout(() => setLeaving(true), 1100)
+    setTimeout(onLogin, 1500)
   }
   return (
-    <div className="login">
+    <div className={`login ${leaving ? 'login--out' : ''}`}>
       <div className="login__band">
         {welcome ? (
           <div className="login__welcome">
