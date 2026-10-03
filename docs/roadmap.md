@@ -9,8 +9,10 @@ Based on the team story bible (private; see `docs/private/story-bible.md` locall
 | **Backend** | FastAPI: unlock validation, locked-file serving, hints, accusation grading, Gemini, Vultr deploy | Python |
 | **Content** | Turn the six Google Docs into app content; fix story issues; write missing lines | Writing |
 | **Tooling / QA** | Case validator, API tests, playthrough test | Java |
-| **Minigames** | PIN dialog, hack, magnifier, cross-examination | JS/TS (can pair) |
-| **Extras** | ElevenLabs voice, GoDaddy domain, art | Anyone |
+| **Minigames** | PIN dialog, hack, magnifier, cross-examination | React/TS (frontend people; can pair) |
+| **Extras** | ElevenLabs voice (backend call, frontend playback), GoDaddy domain, art | Python for the voice call, anyone for the rest |
+
+Stack by lane: **React + Vite + TypeScript** for all frontend work (shell, apps, minigames). **Python (FastAPI)** for the backend. **Java only for tooling and QA** (tests and the case validator); nothing the player runs is in Java.
 
 ## Phases (each is shippable on its own)
 
