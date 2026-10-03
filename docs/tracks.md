@@ -17,6 +17,18 @@ Rules
 - Core game must work with all AI features turned off (fallback to static dialogue).
 - Do not spread across tracks until the single case is playable.
 
+# Decided tracks
+Vultr, GoDaddy, ElevenLabs. Gemini under consideration (below). Skipping Tiger Data, Solana, Presage unless plans change.
+
+# Gemini ideas (ranked by value/effort)
+1. Interrogation: free-form suspect chat, per-suspect knowledge only, solution stays server-side
+2. Hint system: "ask your partner" nudges based on found clues, no spoilers
+3. Case generator: seed -> case.json, then the Java validator checks it is solvable; keep one hand-written case as fallback
+4. Case review: post-accusation detective report
+5. Vision on evidence images (needs real assets, do last)
+
+Rules: keys in backend only, static fallback for every AI feature, cache responses for the demo.
+
 # Story tooling (Java lane)
 Case compiler + validator CLI:
 - Input: writers' markdown or spreadsheet export
