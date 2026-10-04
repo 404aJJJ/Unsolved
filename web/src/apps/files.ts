@@ -13,7 +13,9 @@ export function isLocked(id: FileId) {
 }
 
 // Open a case file: shows the lock prompt if it is still restricted, otherwise the viewer.
-export function openFile(id: FileId, preview = false) {
+export function openFile(id: FileId, wantPreview = false) {
+  // Previews skip the lock, so they exist only on the dev server (Test Lab); in production this is always false.
+  const preview = import.meta.env.DEV && wantPreview
   const entry = FILES.find((f) => f.id === id)!
   if (!preview && isLocked(id)) {
     useWindows.getState().showLock(id)

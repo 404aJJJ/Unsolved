@@ -10,7 +10,8 @@ import type { FileId } from '../content/types'
 import { useGame } from '../store/game'
 import { getDoc } from './files'
 
-export function DocWindow({ fileId, preview = false }: { fileId: FileId; preview?: boolean }) {
+export function DocWindow({ fileId, preview: wantPreview = false }: { fileId: FileId; preview?: boolean }) {
+  const preview = import.meta.env.DEV && wantPreview // dev-server only: a preview ignores the lock
   useGame((s) => s.unlocked[fileId]) // re-render once an unlock lands
   const doc = getDoc(fileId)
   useAutoNarrate(`doc-${fileId}`, doc ? docScript(doc) : '')
