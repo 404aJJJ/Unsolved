@@ -36,6 +36,13 @@ One small Vultr Cloud Compute server runs everything: Caddy (HTTPS, port 80/443)
    ```
    Open the site, log on, play. Narration and grading flags show `false` if a key is missing or still the `insert_...` placeholder.
 
+## Website on Vercel, API on Vultr
+The site can live on Vercel while only the API runs on Vultr. Vercel must **forward `/api/*` to the API** so the browser only ever talks to one origin; otherwise the per-player cookie is treated as a third-party cookie and blocked.
+1. Give the API an HTTPS name. No domain needed: for IP `45.76.235.124` use `45-76-235-124.sslip.io` and run `sudo bash deploy/setup-vultr.sh 45-76-235-124.sslip.io` on the server (Caddy gets the certificate).
+2. `web/vercel.json` already forwards `/api/*` to that name and falls back to `index.html` for every other path. If the API address changes, edit the `destination` there (Vercel cannot read environment variables in this file).
+3. Vercel: *Add New Project* → import the GitHub repo → **Root Directory `web`** → framework Vite (build `npm run build`, output `dist`) → Deploy. Leave `VITE_API_URL` unset.
+4. Test on the Vercel URL: log on, open a locked file's image, file a report. Progress must survive a page reload.
+
 ## Updating
 ```sh
 cd ~/Unsolved && git pull && sudo docker compose -f deploy/docker-compose.yml up -d --build
