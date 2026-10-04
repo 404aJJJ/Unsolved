@@ -25,6 +25,7 @@ export type Block =
   | { t: 'statement'; who: string; role?: string; lines: string[] }
   | { t: 'chat'; title: string; msgs: ChatMessage[] }
   | { t: 'email'; email: Email }
+  | { t: 'specimen'; engraving: string; caption: string }
 
 export interface FileDoc {
   id: FileId
@@ -33,11 +34,14 @@ export interface FileDoc {
   blocks: Block[]
 }
 
+// Skin a lock is presented with. All of them submit through the same /api/unlock call.
+export type Minigame = 'pin' | 'hack' | 'magnifier'
+
 export interface FileEntry {
   id: FileId
   title: string
   kind: string
-  lock?: { type: 'numeric' | 'keyword'; prompt: string }
+  lock?: { type: 'numeric' | 'keyword'; minigame: Minigame; prompt: string }
 }
 
 export interface Suspect {

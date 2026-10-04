@@ -43,10 +43,10 @@ Stack by lane: **React + Vite + TypeScript** for all frontend work (shell, apps,
 - [ ] Deploy to Vultr; register the domain at GoDaddy and point it at the deploy
 
 ### 4. Locks and minigames (build in this order)
-- [ ] Generic `LockPrompt` component: input, server validation, progressive hints, no lockout, plain-text fallback
-- [ ] File 04: PIN dialog (permission-prompt style)
-- [ ] File 05: GTA-style hack minigame
-- [ ] File 06: magnifier minigame (written text stays readable)
+- [x] Generic lock flow (`web/src/minigames/useUnlock.ts` + `LockDialog`): server validation, progressive hints, no lockout, plain-text fallback
+- [x] File 04: PIN dialog (permission-prompt style)
+- [x] File 05: GTA-style hack minigame
+- [x] File 06: magnifier minigame (written text stays readable; plate comes from a `specimen` block in file 05)
 - [ ] Submit Report: Ace Attorney-style cross-examination, then the free-text theory
 
 ### 5. Polish and demo

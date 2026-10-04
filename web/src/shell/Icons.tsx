@@ -27,10 +27,6 @@ export function FolderIcon({ size = 48 }: P) {
       <rect x="11" y="21" width="20" height="1.6" fill="#9aa7b4" transform="rotate(-4 24 25)" />
       <path d="M4 20a3 3 0 0 1 3-3h34a3 3 0 0 1 3 3l-2 18a3 3 0 0 1-3 3H8a3 3 0 0 1-3-3z" fill={`url(#${g}f)`} />
       <path d="M5 20a2 2 0 0 1 2-2h34a2 2 0 0 1 2 2v3H5z" fill="#fff" opacity=".45" />
-      <rect x="18" y="26" width="12" height="7" rx="1" fill="#8b1e1e" opacity=".85" />
-      <text x="24" y="31.6" fontSize="5" fill="#fff" textAnchor="middle" fontFamily="Segoe UI, Tahoma, sans-serif" fontWeight="700">
-        CASE
-      </text>
     </svg>
   )
 }
@@ -194,7 +190,142 @@ export function AppIcon({ app, size = 48 }: { app: AppId; size?: number }) {
       return <BoardIcon size={size} />
     case 'report':
       return <ReportIcon size={size} />
+    case 'clock':
+      return <ClockIcon size={size} />
     case 'doc':
       return <DocIcon size={size} />
   }
+}
+
+export function ClockIcon({ size = 48 }: P) {
+  const g = useId()
+  return (
+    <svg width={size} height={size} viewBox="0 0 48 48">
+      <defs>
+        <radialGradient id={`${g}f`} cx=".4" cy=".3" r=".9">
+          <stop offset="0" stopColor="#ffffff" />
+          <stop offset="1" stopColor="#cfdbe8" />
+        </radialGradient>
+        <Gloss id={`${g}r`} a="#5fb3f0" b="#1d4f8f" />
+      </defs>
+      <circle cx="24" cy="24" r="20" fill={`url(#${g}r)`} stroke="#0e2f55" />
+      <circle cx="24" cy="24" r="16" fill={`url(#${g}f)`} stroke="#8fa6bd" />
+      {[0, 90, 180, 270].map((a) => (
+        <rect key={a} x="23.2" y="9.5" width="1.6" height="3.4" fill="#4a5d70" transform={`rotate(${a} 24 24)`} />
+      ))}
+      <path d="M24 24V14" stroke="#1d2b3a" strokeWidth="2.2" strokeLinecap="round" transform="rotate(-30 24 24)" />
+      <path d="M24 24V11" stroke="#1d2b3a" strokeWidth="1.6" strokeLinecap="round" transform="rotate(100 24 24)" />
+      <path d="M24 26V10" stroke="#c0262d" strokeWidth="1" strokeLinecap="round" transform="rotate(200 24 24)" />
+      <circle cx="24" cy="24" r="1.8" fill="#c0262d" />
+    </svg>
+  )
+}
+
+export type ExtraGlyph = 'browser' | 'camera' | 'music' | 'trophy' | 'trash' | 'txt' | 'sheet' | 'pdf' | 'image'
+
+// Decorative icons for the desktop extras (not openable yet).
+export function ExtraIcon({ glyph, size = 48 }: { glyph: ExtraGlyph; size?: number }) {
+  const g = useId()
+  const page = (accent: string, label: string) => (
+    <svg width={size} height={size} viewBox="0 0 48 48">
+      <defs>
+        <Gloss id={`${g}d`} a="#ffffff" b="#dbe4ee" />
+      </defs>
+      <path d="M11 4h19l9 9v30a1 1 0 0 1-1 1H11a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1z" fill={`url(#${g}d)`} stroke="#8796a6" />
+      <path d="M30 4v9h9" fill="#c7d3df" stroke="#8796a6" />
+      <rect x="10" y="28" width="22" height="10" rx="1.5" fill={accent} />
+      <text x="21" y="35.6" fontSize="6.6" fill="#fff" textAnchor="middle" fontWeight="700" fontFamily="Segoe UI, Tahoma, sans-serif">
+        {label}
+      </text>
+      {[17, 21, 24].map((y) => (
+        <rect key={y} x="15" y={y} width={y === 24 ? 10 : 18} height="1.4" fill="#a9b6c3" />
+      ))}
+    </svg>
+  )
+  switch (glyph) {
+    case 'txt':
+      return page('#5b7894', 'TXT')
+    case 'sheet':
+      return page('#2e8b4a', 'XLS')
+    case 'pdf':
+      return page('#c0392b', 'PDF')
+    case 'image':
+      return page('#8e5bb5', 'JPG')
+    case 'browser':
+      return (
+        <svg width={size} height={size} viewBox="0 0 48 48">
+          <defs>
+            <Gloss id={`${g}b`} a="#7cc4f7" b="#1d5fa8" />
+          </defs>
+          <circle cx="24" cy="24" r="19" fill={`url(#${g}b)`} stroke="#0e2f55" />
+          <path d="M5 24h38M24 5c-9 9-9 29 0 38M24 5c9 9 9 29 0 38M9 14h30M9 34h30" fill="none" stroke="#e8f4ff" strokeWidth="1.2" opacity=".85" />
+        </svg>
+      )
+    case 'camera':
+      return (
+        <svg width={size} height={size} viewBox="0 0 48 48">
+          <defs>
+            <Gloss id={`${g}c`} a="#8794a2" b="#3e4a57" />
+          </defs>
+          <rect x="4" y="13" width="32" height="20" rx="4" fill={`url(#${g}c)`} stroke="#1c242c" />
+          <path d="M36 20l9-5v18l-9-5z" fill="#4c5966" stroke="#1c242c" />
+          <circle cx="20" cy="23" r="6.5" fill="#12202e" stroke="#9fb3c6" strokeWidth="1.5" />
+          <circle cx="18" cy="21" r="1.6" fill="#fff" opacity=".8" />
+          <circle cx="9" cy="17" r="1.6" fill="#e23b3b" />
+        </svg>
+      )
+    case 'music':
+      return (
+        <svg width={size} height={size} viewBox="0 0 48 48">
+          <defs>
+            <Gloss id={`${g}m`} a="#f6a15a" b="#c4561a" />
+          </defs>
+          <circle cx="24" cy="24" r="19" fill={`url(#${g}m)`} stroke="#6b2d0c" />
+          <path d="M19 32V15l14-3v17" fill="none" stroke="#fff" strokeWidth="2.4" strokeLinejoin="round" />
+          <ellipse cx="16.5" cy="32" rx="3.8" ry="3" fill="#fff" />
+          <ellipse cx="30.5" cy="29" rx="3.8" ry="3" fill="#fff" />
+        </svg>
+      )
+    case 'trophy':
+      return (
+        <svg width={size} height={size} viewBox="0 0 48 48">
+          <defs>
+            <Gloss id={`${g}y`} a="#ffe28a" b="#c9921b" />
+          </defs>
+          <path d="M14 6h20v12c0 6-4.5 10-10 10s-10-4-10-10z" fill={`url(#${g}y)`} stroke="#7a5a12" />
+          <path d="M14 9H7c0 7 3 10 8 11M34 9h7c0 7-3 10-8 11" fill="none" stroke="#a87a18" strokeWidth="2.2" />
+          <rect x="21" y="28" width="6" height="7" fill="#d9a82a" stroke="#7a5a12" />
+          <rect x="15" y="35" width="18" height="6" rx="1.5" fill={`url(#${g}y)`} stroke="#7a5a12" />
+          <path d="M19 9v9" stroke="#fff" strokeWidth="2" opacity=".6" strokeLinecap="round" />
+        </svg>
+      )
+    case 'trash':
+      return (
+        <svg width={size} height={size} viewBox="0 0 48 48">
+          <defs>
+            <Gloss id={`${g}t`} a="#e8f1f8" b="#a9bccd" />
+          </defs>
+          <path d="M11 14h26l-2 29H13z" fill={`url(#${g}t)`} stroke="#5d7185" />
+          <rect x="8" y="9" width="32" height="5" rx="2" fill="#c9d7e4" stroke="#5d7185" />
+          <rect x="19" y="5" width="10" height="4" rx="1.5" fill="#c9d7e4" stroke="#5d7185" />
+          {[18, 24, 30].map((x) => (
+            <path key={x} d={`M${x} 18l1 21`} stroke="#7f93a7" strokeWidth="1.6" />
+          ))}
+        </svg>
+      )
+  }
+}
+
+export function InfoIcon({ size = 40 }: P) {
+  const g = useId()
+  return (
+    <svg width={size} height={size} viewBox="0 0 48 48">
+      <defs>
+        <Gloss id={`${g}i`} a="#6fbaf5" b="#1d5fae" />
+      </defs>
+      <circle cx="24" cy="24" r="20" fill={`url(#${g}i)`} stroke="#fff" strokeWidth="2" />
+      <circle cx="24" cy="15" r="2.6" fill="#fff" />
+      <rect x="21.4" y="21" width="5.2" height="14" rx="1.6" fill="#fff" />
+    </svg>
+  )
 }

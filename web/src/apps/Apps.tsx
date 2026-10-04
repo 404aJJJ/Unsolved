@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { DocView, EmailView, MessageThread } from '../components/content'
-import { EMAILS, FILES, MESSAGE_THREADS, SUSPECTS } from '../content/case'
+import { EMAILS, FILES, MESSAGE_THREADS, SUSPECTS, SUSPECT_PHOTOS } from '../content/case'
 import type { FileId } from '../content/types'
 import { useGame } from '../store/game'
 import { getDoc, openFile } from './files'
@@ -12,8 +12,8 @@ export function DocWindow({ fileId }: { fileId: FileId }) {
   return (
     <div className="viewer">
       <div className="viewer__bar">
-        <span>Case Viewer</span>
-        <span className="viewer__sep" />
+        <span className="file__id file__id--sm">{doc.id}</span>
+        <strong>{doc.heading}</strong>
         <span className="viewer__muted">Evidence {doc.id} of 06 · read-only</span>
       </div>
       <div className="viewer__scroll">
@@ -108,18 +108,7 @@ export function BoardApp() {
         {SUSPECTS.map((s, i) => (
           <article key={s.id} className="card" style={{ rotate: `${[-1.5, 1, -0.5, 1.5, -1, 0.5][i]}deg` }}>
             <span className="card__pin" />
-            <div className="card__photo">
-              {s.name
-                .split(' ')
-                .map((p) => p[0])
-                .join('')}
-            </div>
-            <h3>{s.name}</h3>
-            <div className="card__role">
-              {s.age} · {s.occupation}
-              {s.ref && ` · ${s.ref}`}
-            </div>
-            <p>{s.background}</p>
+            <img className="card__dossier" src={SUSPECT_PHOTOS[s.id]} alt={`${s.name}, ${s.age}, ${s.occupation}. ${s.background}`} draggable={false} />
             <textarea
               className="card__note"
               value={suspectNotes[s.id] ?? ''}
@@ -141,25 +130,27 @@ export function ReportApp() {
   return (
     <div className="report">
       <h2>Investigation report</h2>
-      <p>Name the culprit and support your theory with evidence. Opening every file does not end the case; you decide when you are ready.</p>
+      <p className="report__lead">Name the culprit and support your theory with evidence. Recovering every record does not close the case; you decide when you are ready.</p>
       <ul className="report__checklist">
         {FILES.map((f) => {
           const ok = !f.lock || !!unlocked[f.id]
           return (
-            <li key={f.id} className={ok ? 'ok' : ''}>
-              <button className="linklike" onClick={() => openFile(f.id)}>
-                {ok ? '✔' : '🔒'} {f.id} - {f.title}
+            <li key={f.id}>
+              <button className={`report__item ${ok ? 'report__item--ok' : ''}`} onClick={() => openFile(f.id)}>
+                <span className="report__id">{f.id}</span>
+                <span className="report__name">{f.title}</span>
+                <span className={`chip ${ok ? 'chip--new' : 'chip--restricted'}`}>{ok ? 'Recovered' : 'Restricted'}</span>
               </button>
             </li>
           )
         })}
       </ul>
-      <div className="progress" aria-label={`${count} of 6 records`}>
+      <div className="progress" role="progressbar" aria-valuemin={0} aria-valuemax={6} aria-valuenow={count} aria-label="Records recovered">
         <div className="progress__fill" style={{ width: `${(count / 6) * 100}%` }} />
       </div>
       <div className="report__foot">
-        <span className="uac__muted">Cross-examination and accusation arrive in phase 4.</span>
-        <button className="btn btn--primary" disabled={!ready} title={ready ? '' : 'Recover all six records first'}>
+        <span className="uac__muted">{ready ? 'All records recovered. Ready when you are.' : `${count} of 6 records recovered. Recover the rest to begin your report.`}</span>
+        <button className="btn btn--primary" disabled={!ready}>
           Begin report
         </button>
       </div>

@@ -1,82 +1,49 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react'
-import { unlockFile } from '../api/client'
-import { FILES } from '../content/case'
 import type { FileId } from '../content/types'
 import { useGame } from '../store/game'
-import { useWindows } from '../store/windows'
 import { ShieldIcon } from '../shell/Icons'
-import { openFile } from './files'
+import { HackGrid } from '../minigames/HackGrid'
+import { GemSpecimen } from '../minigames/Magnifier'
+import { PinPad } from '../minigames/PinPad'
+import { useUnlock } from '../minigames/useUnlock'
 
-// Generic lock prompt (permission-dialog style). Minigame skins in phase 4 wrap this same flow.
+// Lock prompt (permission-dialog style). The file's minigame skin produces the answer; a plain
+// text field is always one click away so a broken minigame never blocks progress.
 export function LockDialog({ fileId }: { fileId: FileId }) {
-  const entry = FILES.find((f) => f.id === fileId)!
-  const showLock = useWindows((s) => s.showLock)
-  const { attempts, hints, recordMiss, recordUnlock } = useGame()
-  const [answer, setAnswer] = useState('')
-  const [busy, setBusy] = useState(false)
-  const [error, setError] = useState('')
-  const [shake, setShake] = useState(false)
-  const inputRef = useRef<HTMLInputElement>(null)
-  const myHints = hints[fileId] ?? []
-
-  useEffect(() => inputRef.current?.focus(), [])
-
-  const submit = async (e: FormEvent) => {
-    e.preventDefault()
-    if (!answer.trim() || busy) return
-    setBusy(true)
-    setError('')
-    const res = await unlockFile(fileId, answer, (attempts[fileId] ?? 0) + 1)
-    setBusy(false)
-    if (res.ok) {
-      recordUnlock(fileId, res.file)
-      showLock(null)
-      openFile(fileId)
-    } else if ('error' in res) {
-      setError(res.error)
-    } else {
-      recordMiss(fileId, res.hints)
-      setError('Access denied. The reference was not recognised.')
-      setShake(true)
-      setTimeout(() => setShake(false), 400)
-      setAnswer('')
-      inputRef.current?.focus()
-    }
-  }
+  const u = useUnlock(fileId)
+  const { entry, success } = u
+  const lock = entry.lock!
+  const [typed, setTyped] = useState(false)
+  const skin = typed ? 'text' : lock.minigame
 
   return (
-    <div className="uac-scrim" onPointerDown={() => showLock(null)}>
-      <form className={`uac ${shake ? 'uac--shake' : ''}`} onPointerDown={(e) => e.stopPropagation()} onSubmit={submit}>
-        <div className="uac__bar">Restricted Archive</div>
+    <div className={`uac-scrim ${u.leaving ? 'uac-scrim--out' : ''}`} onPointerDown={() => !success && u.cancel()}>
+      <div
+        className={`uac ${skin === 'hack' || skin === 'magnifier' ? 'uac--wide' : ''} ${u.shake ? 'uac--shake' : ''} ${success ? 'uac--ok' : ''}`}
+        onPointerDown={(e) => e.stopPropagation()}
+      >
+        <div className="uac__bar">{skin === 'hack' ? 'Archive Intrusion' : 'Restricted Archive'}</div>
         <div className="uac__head">
-          <ShieldIcon />
+          {success ? <span className="uac__check">✓</span> : <ShieldIcon />}
           <div>
-            <div className="uac__title">This record requires an access reference</div>
+            <div className="uac__title">{success ? 'Access granted' : 'This record requires an access reference'}</div>
             <div className="uac__file">
               {entry.id} - {entry.title}
             </div>
           </div>
         </div>
         <div className="uac__body">
-          <label htmlFor="uac-input">{entry.lock?.prompt}</label>
-          <input
-            id="uac-input"
-            ref={inputRef}
-            className="field"
-            value={answer}
-            onChange={(e) => setAnswer(e.target.value)}
-            inputMode={entry.lock?.type === 'numeric' ? 'numeric' : 'text'}
-            maxLength={entry.lock?.type === 'numeric' ? 4 : 32}
-            autoComplete="off"
-            spellCheck={false}
-            placeholder={entry.lock?.type === 'numeric' ? '0000' : 'Reference'}
-          />
-          {error && <div className="uac__error">{error}</div>}
-          {myHints.length > 0 && (
+          <div>{lock.prompt}</div>
+          {skin === 'pin' && <PinPad onSubmit={u.submit} disabled={u.busy || success} />}
+          {skin === 'hack' && <HackGrid onSubmit={u.submit} disabled={u.busy || success} />}
+          {skin === 'magnifier' && <MagnifierLock submit={u.submit} disabled={u.busy || success} />}
+          {skin === 'text' && <TextLock numeric={lock.type === 'numeric'} submit={u.submit} disabled={u.busy || success} />}
+          {u.error && <div className="uac__error">{u.error}</div>}
+          {u.hints.length > 0 && (
             <div className="uac__hints">
               <strong>Investigator hints</strong>
               <ol>
-                {myHints.map((h, i) => (
+                {u.hints.map((h, i) => (
                   <li key={i}>{h}</li>
                 ))}
               </ol>
@@ -84,15 +51,76 @@ export function LockDialog({ fileId }: { fileId: FileId }) {
           )}
         </div>
         <div className="uac__foot">
-          <span className="uac__muted">Attempts: {attempts[fileId] ?? 0} · no lockout</span>
-          <button type="submit" className="btn btn--primary" disabled={busy}>
-            {busy ? 'Checking…' : 'Continue'}
-          </button>
-          <button type="button" className="btn" onClick={() => showLock(null)}>
+          <span className="uac__muted">
+            Attempts: {u.attempts} · no lockout
+            {lock.minigame !== 'magnifier' && (
+              <>
+                {' · '}
+                <button type="button" className="linkbtn" onClick={() => setTyped(!typed)}>
+                  {typed ? 'Back to interface' : 'Type the reference instead'}
+                </button>
+              </>
+            )}
+          </span>
+          {success || u.busy ? <span className="uac__status">{success ? 'Opening…' : 'Checking…'}</span> : null}
+          <button type="button" className="btn" onClick={u.cancel}>
             Cancel
           </button>
         </div>
-      </form>
+      </div>
+    </div>
+  )
+}
+
+function TextLock({ numeric, submit, disabled }: { numeric: boolean; submit: (a: string) => Promise<boolean>; disabled: boolean }) {
+  const [answer, setAnswer] = useState('')
+  const inputRef = useRef<HTMLInputElement>(null)
+  useEffect(() => inputRef.current?.focus(), [])
+
+  const onSubmit = async (e: FormEvent) => {
+    e.preventDefault()
+    if (!(await submit(answer))) {
+      setAnswer('')
+      inputRef.current?.focus()
+    }
+  }
+
+  return (
+    <form className="textlock" onSubmit={onSubmit}>
+      <input
+        ref={inputRef}
+        className="field"
+        aria-label="Access reference"
+        value={answer}
+        onChange={(e) => setAnswer(e.target.value)}
+        inputMode={numeric ? 'numeric' : 'text'}
+        maxLength={numeric ? 4 : 32}
+        autoComplete="off"
+        spellCheck={false}
+        placeholder={numeric ? '0000' : 'Reference'}
+      />
+      <button type="submit" className="btn btn--primary" disabled={disabled || !answer.trim()}>
+        Continue
+      </button>
+    </form>
+  )
+}
+
+// File 06: inspect the stone photographed in file 05, then enter the digits.
+function MagnifierLock({ submit, disabled }: { submit: (a: string) => Promise<boolean>; disabled: boolean }) {
+  const report = useGame((s) => s.unlocked['05'])
+  const plate = report?.blocks.find((b) => b.t === 'specimen')
+
+  return (
+    <div className="maglock">
+      {plate ? (
+        <GemSpecimen engraving={plate.engraving} caption="Plate 05-A from the Gem Examination Report. Drag the lens along the girdle." />
+      ) : (
+        <div className="maglock__missing">
+          No examination plate loaded. Recover <strong>05 - Gem Examination Report</strong> first; the reference is recorded there.
+        </div>
+      )}
+      <TextLock numeric submit={submit} disabled={disabled} />
     </div>
   )
 }

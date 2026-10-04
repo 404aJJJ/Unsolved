@@ -1,11 +1,14 @@
 import { BoardApp, DocWindow, MailApp, MessagesApp, NotesApp, ReportApp } from '../apps/Apps'
 import { FilesApp } from '../apps/FilesApp'
 import { LockDialog } from '../apps/LockDialog'
-import { FILES } from '../content/case'
-import { useGame } from '../store/game'
 import { useWindows, type AppId, type Win } from '../store/windows'
-import { AppIcon } from './Icons'
+import { AppIcon, ExtraIcon } from './Icons'
+import { useCaseTimer, useCountdownWatcher } from './caseTime'
+import { ClockApp } from '../apps/ClockApp'
+import { ConfirmDialog } from './ConfirmDialog'
+import { EXTRA_ITEMS, TRASH_ITEM, showNotAvailable, type ExtraItem } from './extras'
 import { Taskbar } from './Taskbar'
+import { Widgets } from './Widgets'
 import { Window } from './Window'
 
 const DESKTOP_ICONS: { app: AppId; label: string }[] = [
@@ -31,34 +34,17 @@ function AppBody({ win }: { win: Win }) {
       return <BoardApp />
     case 'report':
       return <ReportApp />
+    case 'clock':
+      return <ClockApp />
     case 'doc':
       return <DocWindow fileId={win.fileId!} />
   }
 }
 
-function CaseGadget() {
-  const unlocked = useGame((s) => s.unlocked)
-  const count = FILES.filter((f) => !f.lock || unlocked[f.id]).length
-  return (
-    <aside className="gadget" aria-label="Case status">
-      <div className="gadget__title">Case PB-062</div>
-      <div className="gadget__big">
-        <span key={count} className="gadget__num">
-          {count}
-        </span>
-        <small>/6</small>
-      </div>
-      <div className="gadget__label">records recovered</div>
-      <div className="progress progress--dark">
-        <div className="progress__fill" style={{ width: `${(count / 6) * 100}%` }} />
-      </div>
-      <div className={`gadget__status ${count === 6 ? 'gadget__status--ready' : ''}`}>{count === 6 ? 'Ready to report' : 'Investigation open'}</div>
-    </aside>
-  )
-}
-
 export function Desktop({ onLogOff }: { onLogOff: () => void }) {
   const { windows, open, lockFor } = useWindows()
+  useCaseTimer()
+  useCountdownWatcher()
   return (
     <div className="desktop">
       <div className="wallpaper" aria-hidden />
@@ -70,14 +56,40 @@ export function Desktop({ onLogOff }: { onLogOff: () => void }) {
           </button>
         ))}
       </div>
-      <CaseGadget />
+      <div className="icons icons--extra">
+        {EXTRA_ITEMS.filter((x) => x.kind === 'app').map((item, i) => (
+          <ExtraButton key={item.id} item={item} delay={400 + i * 45} />
+        ))}
+      </div>
+      <div className="icons icons--files">
+        {EXTRA_ITEMS.filter((x) => x.kind === 'file').map((item, i) => (
+          <ExtraButton key={item.id} item={item} delay={600 + i * 45} />
+        ))}
+      </div>
+      <ExtraButton item={TRASH_ITEM} delay={900} className="dicon--trash" />
+      <Widgets />
       {windows.map((w) => (
         <Window key={w.id} win={w}>
           <AppBody win={w} />
         </Window>
       ))}
       {lockFor && <LockDialog key={lockFor} fileId={lockFor} />}
+      <ConfirmDialog />
       <Taskbar onLogOff={onLogOff} />
     </div>
+  )
+}
+
+function ExtraButton({ item, delay, className = '' }: { item: ExtraItem; delay: number; className?: string }) {
+  return (
+    <button
+      style={{ animationDelay: `${delay}ms` }}
+      className={`dicon ${className}`}
+      onDoubleClick={() => showNotAvailable(item)}
+      onKeyDown={(e) => e.key === 'Enter' && showNotAvailable(item)}
+    >
+      <ExtraIcon glyph={item.glyph} />
+      <span>{item.label}</span>
+    </button>
   )
 }

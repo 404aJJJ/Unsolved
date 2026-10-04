@@ -1,0 +1,262 @@
+/* ---------- Lock minigames (PIN, hack, magnifier) ---------- */
+.uac--wide {
+  width: min(560px, calc(100vw - 32px));
+}
+.uac__status {
+  color: var(--muted);
+}
+.linkbtn {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--accent);
+  font-size: inherit;
+  cursor: pointer;
+  text-decoration: underline;
+}
+.linkbtn:hover {
+  color: #0b4d94;
+}
+.textlock {
+  display: flex;
+  gap: 8px;
+}
+.textlock .field {
+  flex: 1;
+}
+
+/* PIN keypad (file 04) */
+.pin {
+  display: grid;
+  justify-items: center;
+  gap: 12px;
+  padding: 4px 0;
+}
+.pin__slots {
+  display: flex;
+  gap: 8px;
+}
+.pin__slot {
+  width: 38px;
+  height: 44px;
+  display: grid;
+  place-items: center;
+  font: 600 22px/1 var(--font);
+  border: 1px solid #a9b9c9;
+  border-radius: 3px;
+  background: linear-gradient(180deg, #fff, #eef3f8);
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.12);
+}
+.pin__slot--cur {
+  border-color: var(--sel-edge);
+  box-shadow:
+    inset 0 1px 2px rgba(0, 0, 0, 0.12),
+    0 0 0 2px rgba(132, 196, 245, 0.45);
+}
+.pin__slot--on {
+  animation: pin-pop 0.15s ease-out;
+}
+@keyframes pin-pop {
+  from {
+    opacity: 0.4;
+  }
+}
+.pin__pad {
+  display: grid;
+  grid-template-columns: repeat(3, 58px);
+  gap: 6px;
+}
+.pin__key {
+  height: 38px;
+  font-size: 16px;
+  border: 1px solid #8e9fb1;
+  border-radius: 3px;
+  background: linear-gradient(180deg, #fdfdfd 0%, #eaeaea 49%, #dcdcdc 50%, #ececec 100%);
+  cursor: pointer;
+}
+.pin__key:hover:not(:disabled) {
+  border-color: #3c7fb1;
+  background: linear-gradient(180deg, #eaf6fd 0%, #d9f0fc 49%, #bee6fd 50%, #a7d9f5 100%);
+}
+.pin__key:active:not(:disabled) {
+  background: linear-gradient(180deg, #c4e5f6, #98d1ef);
+}
+.pin__key--fn {
+  font-size: 12px;
+}
+
+/* Hack (file 05), after the GTA Online letter-scroll */
+.hack {
+  display: grid;
+  gap: 8px;
+  padding: 10px;
+  border-radius: 3px;
+  background: #050b10;
+  color: #3cf28a;
+  font-family: Consolas, 'Lucida Console', monospace;
+  box-shadow: inset 0 0 30px rgba(60, 242, 138, 0.08);
+}
+.hack--trace {
+  animation: hack-trace 0.25s 4;
+}
+@keyframes hack-trace {
+  50% {
+    box-shadow: inset 0 0 40px rgba(255, 50, 50, 0.6);
+  }
+}
+.hack__top {
+  display: flex;
+  justify-content: space-between;
+  font-size: 11px;
+  opacity: 0.85;
+}
+.hack__time--low {
+  color: #ff5b4f;
+}
+.hack__timer {
+  height: 4px;
+  background: rgba(60, 242, 138, 0.15);
+}
+.hack__timer > div {
+  height: 100%;
+  background: #3cf28a;
+  box-shadow: 0 0 8px #3cf28a;
+}
+.hack__grid {
+  position: relative;
+  overflow: hidden;
+  cursor: crosshair;
+  user-select: none;
+}
+.hack__row {
+  height: 34px;
+  overflow: hidden;
+  opacity: 0.28;
+  transition: opacity 0.2s;
+}
+.hack__row--on {
+  opacity: 1;
+  text-shadow: 0 0 6px #3cf28a;
+}
+.hack__strip {
+  display: flex;
+  white-space: nowrap;
+  will-change: transform;
+}
+.hack__strip span {
+  flex: none;
+  text-align: center;
+  font-size: 20px;
+  line-height: 34px;
+}
+.hack__bracket {
+  position: absolute;
+  left: 50%;
+  height: 34px;
+  transform: translateX(-50%);
+  border: 2px solid #3cf28a;
+  border-radius: 2px;
+  box-shadow:
+    0 0 10px rgba(60, 242, 138, 0.7),
+    inset 0 0 8px rgba(60, 242, 138, 0.4);
+  transition: top 0.15s ease-out;
+  pointer-events: none;
+}
+.hack__bracket--hit {
+  background: rgba(60, 242, 138, 0.35);
+}
+.hack__alert {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  color: #ff5b4f;
+  font-size: 16px;
+  letter-spacing: 2px;
+  background: rgba(5, 11, 16, 0.75);
+}
+.hack__word {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  justify-content: center;
+}
+.hack__word span {
+  width: 26px;
+  height: 32px;
+  display: grid;
+  place-items: center;
+  font-size: 18px;
+  border-bottom: 2px solid rgba(60, 242, 138, 0.4);
+}
+.hack__word .hack__cell--cur {
+  border-bottom-color: #3cf28a;
+  animation: hack-blink 1s steps(2) infinite;
+}
+@keyframes hack-blink {
+  50% {
+    border-bottom-color: transparent;
+  }
+}
+.hack__controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.hack__help {
+  flex: 1;
+  font-size: 10px;
+  opacity: 0.7;
+}
+
+/* Magnifier (file 06 lock, file 05 plate) */
+.specimen {
+  margin: 10px 0;
+  display: grid;
+  justify-items: center;
+  gap: 6px;
+}
+.specimen figcaption {
+  font-size: 11px;
+  color: var(--muted);
+  text-align: center;
+}
+.specimen__plate {
+  position: relative;
+  width: 360px;
+  height: 220px;
+  overflow: hidden;
+  border: 1px solid #222;
+  border-radius: 3px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  cursor: zoom-in;
+  touch-action: none;
+}
+.specimen__plate svg {
+  display: block;
+}
+.specimen__plate--lens {
+  cursor: none;
+}
+.specimen__lens {
+  position: absolute;
+  overflow: hidden;
+  border-radius: 50%;
+  border: 3px solid #c9d6e2;
+  box-shadow:
+    0 0 0 1px #000,
+    0 6px 18px rgba(0, 0, 0, 0.6),
+    inset 0 0 20px rgba(0, 0, 0, 0.5);
+  pointer-events: none;
+}
+.maglock {
+  display: grid;
+  gap: 8px;
+}
+.maglock__missing {
+  padding: 18px;
+  text-align: center;
+  color: var(--muted);
+  border: 1px dashed #b5c8dc;
+  border-radius: 3px;
+}

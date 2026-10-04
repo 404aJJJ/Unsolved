@@ -57,7 +57,7 @@
 .wbtn:active,
 .task:active,
 .orb:active {
-  transform: translateY(1px) scale(0.98);
+  transform: translateY(1px);
 }
 
 /* ---------- Login ---------- */
@@ -70,7 +70,6 @@
 @keyframes login-out {
   to {
     opacity: 0;
-    transform: scale(1.04);
     filter: blur(4px);
   }
 }
@@ -147,7 +146,7 @@
 @keyframes icon-in {
   from {
     opacity: 0;
-    transform: translateX(-10px) scale(0.92);
+    transform: translateX(-10px);
   }
 }
 .dicon:hover svg {
@@ -160,7 +159,7 @@
   max-width: 80px;
   line-height: 1.25;
 }
-.gadget {
+.widget {
   animation: gadget-in 600ms var(--ease-out) 350ms both;
 }
 @keyframes gadget-in {
@@ -175,11 +174,9 @@
 }
 @keyframes pop {
   0% {
-    transform: scale(0.6);
     opacity: 0;
   }
   60% {
-    transform: scale(1.18);
     opacity: 1;
     text-shadow: 0 0 16px rgba(160, 255, 200, 0.9);
   }
@@ -237,7 +234,7 @@
 @keyframes win-open {
   from {
     opacity: 0;
-    transform: scale(0.9) translateY(10px);
+    transform: translateY(10px);
   }
 }
 .win--close {
@@ -247,7 +244,6 @@
 @keyframes win-close {
   to {
     opacity: 0;
-    transform: scale(0.94);
   }
 }
 .win--min {
@@ -257,7 +253,7 @@
 @keyframes win-min {
   to {
     opacity: 0;
-    transform: translate(var(--fly-x, 0), var(--fly-y, 300px)) scale(0.15);
+    transform: translate(var(--fly-x, 0), var(--fly-y, 300px));
   }
 }
 .win--restore {
@@ -266,7 +262,7 @@
 @keyframes win-restore {
   from {
     opacity: 0;
-    transform: translate(var(--fly-x, 0), var(--fly-y, 300px)) scale(0.15);
+    transform: translate(var(--fly-x, 0), var(--fly-y, 300px));
   }
 }
 .win__title {
@@ -312,7 +308,6 @@
 }
 .orb:hover {
   filter: brightness(1.12);
-  transform: scale(1.05);
 }
 .task {
   animation: task-in 240ms var(--ease-out) backwards;
@@ -351,7 +346,7 @@
 @keyframes start-in {
   from {
     opacity: 0;
-    transform: translateY(10px) scale(0.97);
+    transform: translateY(10px);
   }
 }
 .start__item {
@@ -419,7 +414,7 @@
 @keyframes toast-in {
   from {
     opacity: 0;
-    transform: translateY(14px) scale(0.96);
+    transform: translateY(14px);
   }
 }
 @keyframes toast-out {
@@ -442,7 +437,6 @@
 @keyframes uac-in {
   from {
     opacity: 0;
-    transform: scale(0.92);
   }
 }
 .uac-scrim--out .uac {
@@ -451,14 +445,13 @@
 @keyframes uac-out {
   to {
     opacity: 0;
-    transform: scale(1.04);
   }
 }
 .uac__head {
   transition: background 300ms ease;
 }
 .uac--ok .uac__head {
-  background: linear-gradient(180deg, #b7f0a8, #5cc556);
+  background: linear-gradient(180deg, #f4fff2, #d9f3d4);
 }
 .uac__check {
   width: 40px;
@@ -503,12 +496,6 @@
 .file:hover {
   transform: translateY(-1px);
 }
-.file svg {
-  transition: transform var(--t-med) var(--ease-spring);
-}
-.file:hover svg {
-  transform: scale(1.05);
-}
 .file--unlocked {
   animation: unlocked 1.6s ease both;
 }
@@ -522,8 +509,11 @@
     background: #e3f9e1;
   }
 }
+.chip--new {
+  animation: fade-in 500ms ease 300ms both;
+}
 .file__new {
-  animation: pop 500ms var(--ease-spring) 300ms both;
+  animation: fade-in 500ms ease 300ms both;
 }
 
 /* ---------- Content transitions ---------- */
@@ -553,7 +543,7 @@
 @keyframes bubble-in {
   from {
     opacity: 0;
-    transform: scale(0.85) translateY(6px);
+    transform: translateY(6px);
   }
 }
 .card {
@@ -626,7 +616,7 @@
 .start,
 .win__bar,
 .file,
-.gadget {
+.widget {
   user-select: none;
   -webkit-user-select: none;
 }

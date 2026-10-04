@@ -1,7 +1,7 @@
 import { create } from 'zustand'
 import type { FileId } from '../content/types'
 
-export type AppId = 'files' | 'mail' | 'messages' | 'notes' | 'board' | 'report' | 'doc'
+export type AppId = 'files' | 'mail' | 'messages' | 'notes' | 'board' | 'report' | 'clock' | 'doc'
 
 // Animation phase a window is in; the Window component finishes it on animationend.
 export type WinAnim = 'open' | 'close' | 'min' | 'restore' | null
@@ -21,6 +21,15 @@ export interface Win {
   fileId?: FileId
 }
 
+export interface ConfirmRequest {
+  title: string
+  body: string
+  confirmLabel: string
+  danger?: boolean
+  info?: boolean // single OK button, informational icon
+  onConfirm: () => void
+}
+
 export interface Toast {
   id: number
   title: string
@@ -34,6 +43,7 @@ export const APP_META: Record<AppId, { title: string; w: number; h: number }> = 
   notes: { title: 'Notes', w: 460, h: 420 },
   board: { title: 'Case Board', w: 860, h: 560 },
   report: { title: 'Submit Report', w: 560, h: 440 },
+  clock: { title: 'Clock', w: 460, h: 530 },
   doc: { title: 'Case Viewer', w: 700, h: 560 },
 }
 
@@ -43,6 +53,8 @@ interface WindowState {
   lockFor: FileId | null
   justUnlocked: FileId | null
   toasts: Toast[]
+  confirm: ConfirmRequest | null
+  askConfirm: (c: ConfirmRequest | null) => void
   open: (app: AppId, opts?: { fileId?: FileId; title?: string }) => void
   focus: (id: string) => void
   requestClose: (id: string) => void
@@ -75,6 +87,8 @@ export const useWindows = create<WindowState>((set, get) => ({
   lockFor: null,
   justUnlocked: null,
   toasts: [],
+  confirm: null,
+  askConfirm: (confirm) => set({ confirm }),
   open: (app, opts = {}) => {
     const id = opts.fileId ? `${app}-${opts.fileId}` : app
     const existing = get().windows.find((w) => w.id === id)
@@ -129,5 +143,5 @@ export const useWindows = create<WindowState>((set, get) => ({
     setTimeout(() => get().dismissToast(id), 5000)
   },
   dismissToast: (id) => set((s) => ({ toasts: s.toasts.filter((t) => t.id !== id) })),
-  closeAll: () => set({ windows: [], lockFor: null, toasts: [] }),
+  closeAll: () => set({ windows: [], lockFor: null, toasts: [], confirm: null }),
 }))

@@ -19,6 +19,8 @@ One case lives in `data/cases/<id>/`. Writers edit text, devs read it. Solution 
 
 - `content` points to a markdown file; emails and texts use a small structured format (below)
 - `lock.type`: `numeric` | `keyword`
+- `lock.minigame`: `pin` | `hack` | `magnifier`, the skin the lock is shown with (all submit through `/unlock`)
+- The magnifier reads its plate from a `{ "t": "specimen", "engraving": "...", "caption": "..." }` block in the earlier locked file's server-served content, so the engraving never ships in the client
 - Hints are ordered, shown progressively
 - **No answers in this file**
 

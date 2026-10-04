@@ -1,4 +1,5 @@
 import type { Block, ChatMessage, Email, FileDoc } from '../content/types'
+import { GemSpecimen } from '../minigames/Magnifier'
 
 export function EmailView({ email, compact = false }: { email: Email; compact?: boolean }) {
   return (
@@ -29,7 +30,7 @@ export function MessageThread({ title, msgs }: { title?: string; msgs: ChatMessa
     <div className="thread">
       {title && <div className="thread__title">{title}</div>}
       {msgs.map((m, i) => (
-        <div key={i} className={`bubble ${m.from === first ? 'bubble--them' : 'bubble--me'}`}>
+        <div key={i} style={{ animationDelay: `${i * 90}ms` }} className={`bubble ${m.from === first ? 'bubble--them' : 'bubble--me'}`}>
           <span className="bubble__from">
             {m.from}
             {m.time && <span className="bubble__time"> · {m.time}</span>}
@@ -89,6 +90,8 @@ function BlockView({ block }: { block: Block }) {
       return <MessageThread title={block.title} msgs={block.msgs} />
     case 'email':
       return <EmailView email={block.email} compact />
+    case 'specimen':
+      return <GemSpecimen engraving={block.engraving} caption={block.caption} />
   }
 }
 

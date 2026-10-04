@@ -1,6 +1,10 @@
 import { useEffect, useState } from 'react'
 import { useGame } from '../store/game'
 import { activeWindowId, useWindows, type AppId } from '../store/windows'
+import { secondsLeft, useTimer } from '../store/timer'
+import { formatElapsed } from './caseTime'
+import { Elapsed } from './CaseTimer'
+import { useNow } from './useNow'
 import { AppIcon, MagnifierGlyph } from './Icons'
 
 const START_ITEMS: { app: AppId; label: string; desc: string }[] = [
@@ -10,6 +14,7 @@ const START_ITEMS: { app: AppId; label: string; desc: string }[] = [
   { app: 'board', label: 'Case Board', desc: 'Suspects and leads' },
   { app: 'notes', label: 'Notes', desc: 'Your notebook' },
   { app: 'report', label: 'Submit Report', desc: 'Name the culprit' },
+  { app: 'clock', label: 'Clock', desc: 'Time, world time, timer' },
 ]
 
 function useClock() {
@@ -21,8 +26,23 @@ function useClock() {
   return now
 }
 
+function CountdownChip() {
+  const t = useTimer()
+  const now = useNow(250)
+  const open = useWindows((s) => s.open)
+  if (t.status === 'idle') return null
+  return (
+    <button className={`tray__timer tray__timer--cd ${t.status === 'done' ? 'tray__timer--done' : ''}`} title="Countdown timer" onClick={() => open('clock')}>
+      <svg width="12" height="12" viewBox="0 0 12 12" aria-hidden>
+        <path d="M3 1h6M3 11h6M3.5 1c0 3 5 3 5 5s-5 2-5 5" fill="none" stroke="currentColor" strokeWidth="1.2" />
+      </svg>
+      {formatElapsed(secondsLeft(t, now.getTime()))}
+    </button>
+  )
+}
+
 export function Taskbar({ onLogOff }: { onLogOff: () => void }) {
-  const { windows, open, focus, requestMin, toasts, dismissToast } = useWindows()
+  const { windows, open, focus, requestMin, toasts, dismissToast, askConfirm } = useWindows()
   const activeId = activeWindowId(windows)
   const reset = useGame((s) => s.reset)
   const [startOpen, setStartOpen] = useState(false)
@@ -65,10 +85,14 @@ export function Taskbar({ onLogOff }: { onLogOff: () => void }) {
               <button
                 className="start__link start__link--btn"
                 onClick={() => {
-                  if (confirm('Restart the investigation? Unlocked files and notes will be cleared.')) {
-                    reset()
-                    setStartOpen(false)
-                  }
+                  setStartOpen(false)
+                  askConfirm({
+                    title: 'Restart the investigation?',
+                    body: 'Unlocked records, notes and your case time will be cleared. This cannot be undone.',
+                    confirmLabel: 'Restart case',
+                    danger: true,
+                    onConfirm: reset,
+                  })
                 }}
               >
                 Restart case
@@ -111,6 +135,14 @@ export function Taskbar({ onLogOff }: { onLogOff: () => void }) {
               </span>
             </button>
           ))}
+        </div>
+        <CountdownChip />
+        <div className="tray__timer" title="Time on case">
+          <svg width="12" height="12" viewBox="0 0 12 12" aria-hidden>
+            <circle cx="6" cy="6" r="5" fill="none" stroke="currentColor" strokeWidth="1.2" />
+            <path d="M6 3v3.2l2 1.2" fill="none" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
+          </svg>
+          <Elapsed />
         </div>
         <div className="tray">
           <span className="tray__time">{now.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}</span>

@@ -18,13 +18,13 @@ export const FILES: FileEntry[] = [
     id: '04',
     title: 'Access and Activity Audit',
     kind: 'Restricted record',
-    lock: { type: 'numeric', prompt: "Enter the four numeric digits from the appraiser's visitor-pass reference." },
+    lock: { type: 'numeric', minigame: 'pin', prompt: "Enter the four numeric digits from the appraiser's visitor-pass reference." },
   },
   {
     id: '05',
     title: 'Gem Examination Report',
     kind: 'Restricted record',
-    lock: { type: 'keyword', prompt: 'Enter the inspection codename used in the appointment correspondence.' },
+    lock: { type: 'keyword', minigame: 'hack', prompt: 'Enter the inspection codename used in the appointment correspondence.' },
   },
   {
     id: '06',
@@ -32,6 +32,7 @@ export const FILES: FileEntry[] = [
     kind: 'Restricted record',
     lock: {
       type: 'numeric',
+      minigame: 'magnifier',
       prompt: 'Enter the four digits after R in the microscopic mark on the recovered imitation.',
     },
   },
@@ -229,3 +230,12 @@ export const OPEN_DOCS: Record<'01' | '02' | '03', FileDoc> = {
     blocks: EMAILS.map((email) => ({ t: 'email' as const, email })),
   },
 }
+
+import mw from '../assets/suspects/mw.webp'
+import nb from '../assets/suspects/nb.webp'
+import aw from '../assets/suspects/aw.webp'
+import bm from '../assets/suspects/bm.webp'
+import ow from '../assets/suspects/ow.webp'
+import lj from '../assets/suspects/lj.webp'
+
+export const SUSPECT_PHOTOS: Record<string, string> = { mw, nb, aw, bm, ow, lj }
