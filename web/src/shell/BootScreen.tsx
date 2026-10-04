@@ -1,13 +1,21 @@
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { CASE_IMAGES } from '../content/caseImages'
 import { useApi } from '../store/api'
-import { MagnifierGlyph } from './Icons'
 
-// Shown once, when the page first loads: it really does the start-up work (reach the API, read its feature flags,
-// warm the public evidence images and fonts) and holds for a moment so it reads as a boot, then hands over to log-on.
-const MIN_MS = 1800
+// A text-mode boot, like a Linux console: kernel-style lines with timestamps and [ OK ] markers.
+// Flavour lines are scripted; the lines marked REAL wait for actual work (reach the API, read its flags, warm the
+// public evidence images) and show its real result, including [FAILED] with a retry if the server is down.
+type Tag = 'ok' | 'fail' | 'warn' | null
+interface Line {
+  id: number
+  time: string
+  text: string
+  tag: Tag
+}
 
-const STEPS = ['Starting Unsolved.exe', 'Connecting to the investigation server', 'Loading case files', 'Preparing your desktop'] as const
+const MIN_MS = 2200
+
+const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms))
 
 function preload(src: string) {
   return new Promise<void>((done) => {
@@ -18,25 +26,97 @@ function preload(src: string) {
 }
 
 export function BootScreen({ onDone }: { onDone: () => void }) {
-  const load = useApi((s) => s.load)
-  const status = useApi((s) => s.status)
-  const [step, setStep] = useState(1) // 0 would be 'Starting'; the work begins immediately
-  const [attempt, setAttempt] = useState(0)
+  const [lines, setLines] = useState<Line[]>([])
+  const [failed, setFailed] = useState(false)
   const [leaving, setLeaving] = useState(false)
+  const [attempt, setAttempt] = useState(0)
+  const fast = useRef(false) // any key or click fast-forwards the scripted lines
   const finished = useRef(false)
+
+  const retry = useCallback(() => {
+    useApi.setState({ status: 'unknown' })
+    setLines([])
+    setFailed(false)
+    setAttempt((n) => n + 1)
+  }, [])
+
+  useEffect(() => {
+    const skip = () => (fast.current = true)
+    const key = (e: KeyboardEvent) => (failed && e.key === 'Enter' ? retry() : skip())
+    window.addEventListener('keydown', key)
+    window.addEventListener('pointerdown', skip)
+    return () => {
+      window.removeEventListener('keydown', key)
+      window.removeEventListener('pointerdown', skip)
+    }
+  }, [failed, retry])
 
   useEffect(() => {
     let live = true
-    const started = performance.now()
-    ;(async () => {
-      await load() // the server's feature flags; sets status to online or offline
+    const t0 = performance.now()
+    let id = 0
+    const stamp = () => ((performance.now() - t0) / 1000 + 0.18).toFixed(6).padStart(11, ' ')
+    const add = (text: string, tag: Tag = null) => {
+      const line: Line = { id: id++, time: stamp(), text, tag }
+      setLines((l) => [...l, line])
+      return line.id
+    }
+    const mark = (lineId: number, tag: Tag, text?: string) =>
+      setLines((l) => l.map((x) => (x.id === lineId ? { ...x, tag, text: text ?? x.text } : x)))
+    const flavour = async (text: string, tag: Tag = 'ok', ms = 70) => {
       if (!live) return
-      if (useApi.getState().status === 'offline') return // the screen shows a retry; nothing else to do
-      setStep(2)
+      add(text, tag)
+      await sleep(fast.current ? 4 : ms + Math.random() * 60)
+    }
+
+    ;(async () => {
+      await sleep(0) // lets StrictMode's throwaway first run be cancelled before it prints anything
+      if (!live) return
+      add('Unsolved.exe evidence terminal PB-062, Premier Bank, London')
+      await sleep(fast.current ? 4 : 220)
+      for (const [text, tag] of [
+        ['Booting case file system', null],
+        ['Checking memory ... 640K OK', 'ok'],
+        ['Detecting hardware: 1 detective, 6 persons of interest', null],
+        ['Started Evidence Vault', 'ok'],
+        ['Started Interview Transcripts', 'ok'],
+        ['Reached target Security Logs', 'warn'],
+      ] as [string, Tag][]) {
+        await flavour(text, tag)
+        if (!live) return
+      }
+
+      // REAL: reach the server and read what it can do.
+      const net = add('Connecting to the investigation server')
+      await useApi.getState().load()
+      if (!live) return
+      const { status, features } = useApi.getState()
+      if (status === 'offline') {
+        mark(net, 'fail')
+        add('Cannot reach the investigation server.', 'fail')
+        add('Press ENTER or click Try again to retry.')
+        setFailed(true)
+        return
+      }
+      mark(net, 'ok')
+      await flavour(`Server features: narration=${features.narration ? 'server voice' : 'browser voice'}, grading-ai=${features.gradingAI ? 'on' : 'off'}`, 'ok', 120)
+      if (!live) return
+
+      // REAL: warm the public evidence images and fonts.
+      const files = add('Mounting /evidence (case files)')
       await Promise.all([document.fonts?.ready, preload(CASE_IMAGES['01'].src), preload(CASE_IMAGES['02'].src)])
       if (!live) return
-      setStep(3)
-      await new Promise((r) => setTimeout(r, Math.max(0, MIN_MS - (performance.now() - started))))
+      mark(files, 'ok')
+
+      for (const text of ['Started Case Board', 'Started Notebook', 'Started Clock (30:00 on the clock)', 'Reached target Detective Desktop']) {
+        await flavour(text)
+        if (!live) return
+      }
+      const wait = Math.max(0, MIN_MS - (performance.now() - t0))
+      await sleep(fast.current ? 0 : wait)
+      if (!live || finished.current) return
+      add('Starting display manager ...')
+      await sleep(fast.current ? 60 : 350)
       if (!live || finished.current) return
       finished.current = true
       setLeaving(true)
@@ -45,37 +125,33 @@ export function BootScreen({ onDone }: { onDone: () => void }) {
     return () => {
       live = false
     }
-  }, [attempt, load, onDone])
+  }, [attempt, onDone])
 
-  const offline = status === 'offline'
+  // Keep the newest line in view, like a scrolling console.
+  const end = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    end.current?.scrollIntoView({ block: 'end' })
+  }, [lines])
+
   return (
-    <div className={`boot ${leaving ? 'boot--out' : ''}`} role="status" aria-live="polite">
-      <div className="boot__logo">
-        <MagnifierGlyph size={46} />
-      </div>
-      <div className="boot__title">
-        Unsolved<span>.exe</span>
-      </div>
-      <div className={`boot__bar ${offline ? 'boot__bar--stalled' : ''}`} aria-hidden>
-        <i style={{ width: offline ? '35%' : `${(step / (STEPS.length - 1)) * 100}%` }} />
-      </div>
-      {offline ? (
-        <div className="boot__error">
-          <p>Cannot reach the investigation server.</p>
-          <button
-            className="boot__retry"
-            onClick={() => {
-              useApi.setState({ status: 'unknown' })
-              setStep(1)
-              setAttempt((n) => n + 1)
-            }}
-          >
-            Try again
+    <div className={`boot ${leaving ? 'boot--out' : ''}`} role="status" aria-live="polite" aria-label="Starting Unsolved.exe">
+      <div className="boot__log">
+        {lines.map((l) => (
+          <div key={l.id} className="boot__line">
+            <span className="boot__time">[{l.time}]</span>
+            {l.tag && <span className={`boot__tag boot__tag--${l.tag}`}>{l.tag === 'ok' ? '[  OK  ]' : l.tag === 'fail' ? '[FAILED]' : '[ WARN ]'}</span>}
+            <span className="boot__text">{l.text}</span>
+          </div>
+        ))}
+        {failed ? (
+          <button className="boot__retry" onClick={retry}>
+            &gt; Try again
           </button>
-        </div>
-      ) : (
-        <div className="boot__status">{STEPS[Math.min(step, STEPS.length - 1)]}…</div>
-      )}
+        ) : (
+          <span className="boot__cursor" aria-hidden />
+        )}
+        <div ref={end} />
+      </div>
     </div>
   )
 }
