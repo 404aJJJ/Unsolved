@@ -1,10 +1,9 @@
-# AI / agent / planning files (local only)
-project.md
-PROJECT.md
+# AI / agent / scratch files (local only)
 agent.md
 AGENT.md
 agents.md
 AGENTS.md
+scratch/
 claude.md
 CLAUDE.md
 GEMINI.md
@@ -13,9 +12,6 @@ GEMINI.md
 .cursorrules
 .windsurfrules
 .aider*
-notes.md
-TODO.md
-scratch/
 
 # Dependencies / build
 node_modules/
