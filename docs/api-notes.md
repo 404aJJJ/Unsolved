@@ -1,0 +1,40 @@
+# API notes (operations and gotchas)
+
+Companion to [api.md](api.md) (the contract) and [deploy-vultr.md](deploy-vultr.md) (the steps). This is what to know when running or changing the live API.
+
+## Live setup
+- **API:** Vultr Cloud Compute, Docker compose: Caddy (HTTPS) → one container running `server/main.py` (FastAPI). Address: `https://45-76-235-124.sslip.io` (the server IP `45.76.235.124` written as an `sslip.io` name so Caddy can get a certificate without owning a domain).
+- **Website:** Vercel (project root `web`). `web/vercel.json` forwards `/api/*` to the API address, so the browser only talks to the Vercel origin and the player cookie works.
+- **Check it any time:** `bash deploy/smoke-test.sh https://45-76-235-124.sslip.io` (17 checks, no secrets needed).
+
+## Operating it (on the server, in `~/Unsolved`)
+| Task | Command |
+|---|---|
+| Update to the latest code | `git pull && sudo docker compose -f deploy/docker-compose.yml up -d --build` |
+| Logs | `docker compose -f deploy/docker-compose.yml logs --tail=100 app` (Caddy: `... logs caddy`) |
+| Restart | `docker compose -f deploy/docker-compose.yml restart app` |
+| Change a key (`.env`) | edit `.env`, then `docker compose -f deploy/docker-compose.yml up -d` |
+| Is a feature on? | `curl -s http://127.0.0.1/api/config` |
+| Back up player data | `docker run --rm -v deploy_unsolved-data:/d -v "$PWD":/b alpine tar czf /b/players.tgz -C /d .` (volume name may differ: `docker volume ls`) |
+
+## Behaviour worth knowing
+- **One game per browser.** A random `uid` cookie (30 days, HttpOnly, Secure over https) keys progress and the notebook in SQLite (`/data/game.sqlite3` in the container). Clearing cookies or switching browser starts a fresh game on the server; the site's local save is separate.
+- **Secrets are only in `.env` and `case-private.json` on the server.** Neither is in git or the image. Without `case-private.json`: unlock and progress return 503. Without a real `GEMINI_API_KEY`: reports are still graded, with `theory.source: "offline"`. Without `ELEVEN_LABS_API_KEY`: `/api/narrate` returns 503 and the site falls back to the browser voice. `insert_...` placeholders count as "not set".
+- **Final reports.** `/api/accuse` is final and always explains the case, right or wrong. The 30:00 timer is client-side; on timeout the site posts the draft with `timedOut: true`.
+- **Gemini model.** Default `gemini-3.5-flash-lite` (older `2.5` names return 404 for new keys). Override with `GEMINI_MODEL`. The server logs the HTTP status and reason when Gemini fails; the player just sees an offline result.
+- **Caches and rate limits are in memory.** Theory and narration caches and the per-IP limits (12 reports/min, 20 narrations/min) reset when the container restarts. Behind Caddy and Vercel the client IP comes from `X-Forwarded-For`; expect players behind one proxy to share a bucket.
+- **Developer shortcuts are off.** `UNSOLVED_DEV` (the `/api/dev/*` Test Lab routes) and `UNSOLVED_TEST_PREVIEW` (the `?preview=true` image bypass) default to `0`, and compose pins both to `"0"`. The smoke test fails if either is on. The Test Lab itself exists only on the dev server.
+- **Evidence images.** 01 and 02 are public and cacheable for an hour. 04, 05 and 06 return 403 until that player unlocks them and are never cached (`no-store`).
+- **Single server.** SQLite on one volume is plenty for a demo. Destroying the server or running `docker compose down -v` deletes player data.
+- **Let's Encrypt and sslip.io.** `sslip.io` is a shared domain, so certificate rate limits are shared too. If issuance fails, retry later or point a real domain at the server and rerun `setup-vultr.sh <domain>`, then update `web/vercel.json`.
+
+## Changing the API
+1. Update `docs/api.md` first, then `server/` and the mock in `web/dev-api/` (keep them in sync; the mock exists so `npm run dev` works without Python).
+2. Add a test in `server/tests/` (`server/.venv/bin/python -m unittest discover -s server/tests`; 47 tests today).
+3. Never put answers, the solution, the rubric or API keys in the client code or `VITE_*` variables.
+4. After deploying, run the smoke test.
+
+## Known gaps
+- Narration is untested against real ElevenLabs audio (no key was set while building).
+- The Docker image was built for the first time on the Vultr server; there is no CI yet.
+- Nothing rate-limits `/api/unlock`; wrong guesses are free by design (hints, no lockout), so a script could brute-force a four-digit PIN. If that matters, add a per-player delay after N wrong answers.

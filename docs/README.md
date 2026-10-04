@@ -6,3 +6,6 @@
 - [roadmap.md](roadmap.md) – hackathon timeline and who owns what
 - [tracks.md](tracks.md) – prize tracks and how the game fits them
 - [api.md](api.md) – API contract between frontend and backend
+- [api-notes.md](api-notes.md) – running the live API: operations, behaviour, gotchas
+- [deploy-vultr.md](deploy-vultr.md) – Vultr (API) and Vercel (website) deployment steps
+- [integrations.md](integrations.md) – connecting the website to the backend, adding integrations
