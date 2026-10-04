@@ -45,8 +45,9 @@ The site can live on Vercel while only the API runs on Vultr. Vercel must **forw
 
 ## Updating
 ```sh
-cd ~/Unsolved && git pull && sudo docker compose -f deploy/docker-compose.yml up -d --build
+cd ~/Unsolved && git pull && sudo bash deploy/setup-vultr.sh
 ```
+The script remembers your domain in `deploy/.env`, so updating keeps HTTPS. (Running `docker compose up` by hand also works once `deploy/.env` exists; without it, compose falls back to plain http on port 80 and the HTTPS name stops answering. If that happens, run `sudo bash deploy/setup-vultr.sh <your-domain>` again.)
 Player data survives (it is in the `unsolved-data` volume). `docker compose -f deploy/docker-compose.yml down -v` deletes it.
 
 ## Production safety (already the defaults)

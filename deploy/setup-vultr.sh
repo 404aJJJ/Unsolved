@@ -40,7 +40,15 @@ if command -v ufw >/dev/null 2>&1; then
   ufw --force enable >/dev/null
 fi
 
+# Remember the domain in deploy/.env (gitignored). Compose reads it on every later `up`, so a plain
+# `docker compose up -d --build` during an update can never silently drop HTTPS back to plain http.
+if [ -n "$DOMAIN_ARG" ]; then
+  echo "DOMAIN=$DOMAIN_ARG" > deploy/.env
+fi
+SAVED_DOMAIN="$(grep -s '^DOMAIN=' deploy/.env | head -1 | cut -d= -f2-)"
+DOMAIN_ARG="${DOMAIN_ARG:-$SAVED_DOMAIN}"
 export DOMAIN="${DOMAIN_ARG:-:80}"
+echo "Serving on: ${DOMAIN_ARG:-plain http (no domain)}"
 docker compose -f deploy/docker-compose.yml up -d --build
 
 echo

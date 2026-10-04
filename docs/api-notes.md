@@ -10,12 +10,15 @@ Companion to [api.md](api.md) (the contract) and [deploy-vultr.md](deploy-vultr.
 ## Operating it (on the server, in `~/Unsolved`)
 | Task | Command |
 |---|---|
-| Update to the latest code | `git pull && sudo docker compose -f deploy/docker-compose.yml up -d --build` |
+| Update to the latest code | `git pull && sudo bash deploy/setup-vultr.sh` (keeps the domain from `deploy/.env`) |
 | Logs | `docker compose -f deploy/docker-compose.yml logs --tail=100 app` (Caddy: `... logs caddy`) |
 | Restart | `docker compose -f deploy/docker-compose.yml restart app` |
-| Change a key (`.env`) | edit `.env`, then `docker compose -f deploy/docker-compose.yml up -d` |
+| Change a key (`.env`) | edit `.env`, then `sudo bash deploy/setup-vultr.sh` |
 | Is a feature on? | `curl -s http://127.0.0.1/api/config` |
 | Back up player data | `docker run --rm -v deploy_unsolved-data:/d -v "$PWD":/b alpine tar czf /b/players.tgz -C /d .` (volume name may differ: `docker volume ls`) |
+
+## If the HTTPS address stops answering
+Symptom: the smoke test shows `000` for every check, `curl http://<server-ip>/api/health` still works, and port 443 is closed. Cause: Caddy was restarted without `DOMAIN`, so it fell back to plain http on port 80 and the Vercel rewrite (which needs HTTPS) breaks. Fix on the server: `cd ~/Unsolved && git pull && sudo bash deploy/setup-vultr.sh 45-76-235-124.sslip.io`. This writes `deploy/.env` so it cannot happen again.
 
 ## Behaviour worth knowing
 - **One game per browser.** A random `uid` cookie (30 days, HttpOnly, Secure over https) keys progress and the notebook in SQLite (`/data/game.sqlite3` in the container). Clearing cookies or switching browser starts a fresh game on the server; the site's local save is separate.
