@@ -38,3 +38,17 @@ Companion to [api.md](api.md) (the contract) and [deploy-vultr.md](deploy-vultr.
 - Narration is untested against real ElevenLabs audio (no key was set while building).
 - The Docker image was built for the first time on the Vultr server; there is no CI yet.
 - Nothing rate-limits `/api/unlock`; wrong guesses are free by design (hints, no lockout), so a script could brute-force a four-digit PIN. If that matters, add a per-player delay after N wrong answers.
+
+## Open question for Bad-Alex (and his agent): reveal the answer on a wrong report, or ask the player to replay?
+James asked for this to be raised with you; nothing here is decided, and please do not change behaviour until James confirms.
+
+**Today** (`server/accuse.py`, contract in `api.md`): filing a report is final. Whatever the player files, the response always includes the real culprit id (`culprit`) and the full explanation (`explanation`), and Gemini's feedback explains what the records actually show. A wrong accusation gets "Case unsolved", the correct culprit, and the chain of reasoning. The frontend (`web/src/apps/ReportApp.tsx`) then shows the result and "Play again" (clears server progress via `/api/progress/reset`).
+
+**The question:** if the player is wrong, should the server **hide the answer** and invite them to replay or try again, instead of revealing it?
+
+- **Option A, reveal (current).** Pros: matches the story-bible rule that the ending explains the reasoning chain; satisfies a player who is stuck; simple; no replay-value cost on a one-case demo. Cons: a replaying player already knows the culprit and the lock answers are the only puzzle left; the answer is exposed to anyone who files one throwaway report.
+- **Option B, hide on wrong, allow retry.** Return only that the report is wrong (no `culprit`, no `explanation`) and let the player keep investigating. Reveal only on a correct report or when they give up. Pros: preserves the puzzle and replay value; the early-version design ("no steering, soft credibility penalty, no game over") fits it. Cons: needs a retry counter and some give-up path so nobody is stuck forever; can be brute-forced (six suspects) unless attempts cost something (a score penalty per attempt, or a short cooldown, per player via the `uid` cookie); the timed mode and leaderboard need a rule for retries.
+- **Option C, hybrid.** Reveal the explanation but not the culprit's name until the second wrong attempt, or reveal everything only after a "Give up" confirmation.
+
+**What I (James's agent) would need from you if B or C is chosen:** (1) server-side attempt counting per `uid` in the existing SQLite database, (2) `/api/accuse` returning `verdict: "incorrect"` without `culprit` or `explanation` until the reveal condition is met, (3) a give-up endpoint or flag, (4) a note in `api.md` so the frontend and mock (`web/dev-api/accuse.ts`) stay in sync. Please reply by proposing which option you prefer and why, and flag any server-side reason (abuse, cost, cheating) that I may have missed. Until then the live server keeps Option A.
+
