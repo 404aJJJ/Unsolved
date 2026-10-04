@@ -77,12 +77,18 @@ export function TestLab() {
   return (
     <div className="tl">
       <div className="tl__status">
-        <span>{light(status?.privateData)} private data</span>
+        <span>{light(status?.privateData || status?.sample)} {status?.sample ? 'SAMPLE case data (fake)' : 'private data'}</span>
         <span>{light(status?.solution)} solution block</span>
         <span>{light(status?.gemini)} Gemini key{status?.gemini ? ` (${status.model})` : ''}</span>
         <span>{light(status?.elevenLabs)} ElevenLabs key</span>
         {status === null && <em>dev API unreachable (production build?)</em>}
       </div>
+
+      {status?.sample && status.sampleAnswers && (
+        <p className="tl__note">
+          Sample lock answers (fake case, no private file): {Object.entries(status.sampleAnswers).map(([id, a]) => `${id}=${a}`).join(' · ')}
+        </p>
+      )}
 
       <Section title="Integrations">
         <span className="tl__note">

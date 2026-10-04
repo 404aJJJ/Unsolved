@@ -88,6 +88,39 @@ class SessionTests(Base):
         self.assertIn("Secure", response.headers["set-cookie"])
 
 
+class SampleCaseTests(Base):
+    def test_missing_case_file_fails_loudly_by_default(self):
+        Path(self.temp.name, "case.json").unlink()
+        self.assertEqual(self.client.post("/api/unlock", json={"fileId": "05", "answer": "SAMPLE"}).status_code, 503)
+        self.assertEqual(self.client.post("/api/accuse", json=WIN).status_code, 503)
+
+    def test_sample_case_is_used_only_when_explicitly_allowed(self):
+        Path(self.temp.name, "case.json").unlink()
+        with patch("server.main.ALLOW_SAMPLE", True):
+            ok = self.client.post("/api/unlock", json={"fileId": "05", "answer": "sample"}).json()
+            self.assertTrue(ok["ok"])
+            self.assertEqual(ok["file"]["id"], "05")
+            bad = self.client.post("/api/unlock", json={"fileId": "05", "answer": "nope"}).json()
+            self.assertFalse(bad["ok"])
+            report = self.client.post("/api/accuse", json={"culprit": "bm", "evidence": ["06", "05", "04"], "theory": "x"}).json()
+            self.assertEqual(report["verdict"], "solved")
+            self.assertIn("SAMPLE", report["explanation"][0])
+
+    def test_real_file_always_wins_over_the_sample(self):
+        with patch("server.main.ALLOW_SAMPLE", True):
+            self.assertTrue(self.client.post("/api/unlock", json={"fileId": "05", "answer": "TEST"}).json()["ok"])
+            self.assertFalse(self.client.post("/api/unlock", json={"fileId": "05", "answer": "SAMPLE"}).json()["ok"])
+
+    def test_sample_file_contains_only_fake_content(self):
+        text = (Path(__file__).parents[1] / "sample" / "case-sample.json").read_text()
+        for real_secret in ("NIGHTINGALE", "ENIGMA", "R4821", "7316", "Margaret Wood"):
+            self.assertNotIn(real_secret, text)
+        # The sample must not mirror the real solution (culprit id or which records prove which claim).
+        sample = json.loads(text)["solution"]
+        self.assertNotEqual(sample["culprit"], "mw")
+        self.assertNotEqual(sample["claims"]["opportunity"]["best"], ["04"])
+
+
 class ConfigTests(Base):
     def test_flags_follow_the_keys(self):
         self.assertEqual(self.client.get("/api/config").json(), {"features": {"narration": False, "gradingAI": False}})

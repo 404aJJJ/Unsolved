@@ -3,7 +3,7 @@ RowdyHacks '26 project: a detective casefile game for the web, played on a Vista
 
 ## Run it locally
 
-You need `server/private/case-private.json` (answers and locked files; gitignored, get it from the team) and optionally a repo-root `.env` (copy `.env.example`) for the Gemini and ElevenLabs keys.
+`server/private/case-private.json` (the real answers and locked files; gitignored, get it from the team) is optional for testing: **without it the dev server and `run-dev.sh` automatically use a fake sample case** (`server/sample/case-sample.json`; lock answers 04=`0000`, 05=`SAMPLE`, 06=`1111`, shown in the Test Lab). A repo-root `.env` (copy `.env.example`) is only needed for the Gemini and ElevenLabs keys.
 
 **Quick (frontend only, no Python).** The dev server mimics the whole API in memory.
 ```bash

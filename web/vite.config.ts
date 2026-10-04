@@ -1,5 +1,5 @@
 import react from '@vitejs/plugin-react'
-import { readFileSync } from 'node:fs'
+import { existsSync, readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { defineConfig, loadEnv, type Connect, type Plugin } from 'vite'
 import { handleAccuse } from './dev-api/accuse.ts'
@@ -11,6 +11,9 @@ import { handleNarrate, narrationConfigured, narrationVoice } from './dev-api/na
 // Set VITE_API_URL to point the client at the real backend instead.
 function mockApi(env: Record<string, string>, alsoAtApi: boolean): Plugin {
   const privatePath = resolve(__dirname, '../server/private/case-private.json')
+  // No private file (a teammate without the secrets)? Use the fake sample case so the whole UI is still testable.
+  const samplePath = resolve(__dirname, '../server/sample/case-sample.json')
+  const usingSample = () => !existsSync(privatePath)
   const normalize = (s: string) => s.trim().toUpperCase()
 
   return {
@@ -22,7 +25,7 @@ function mockApi(env: Record<string, string>, alsoAtApi: boolean): Plugin {
         server.middlewares.use(path.replace('/api', '/mock-api'), handler)
         if (alsoAtApi) server.middlewares.use(path, handler)
       }
-      const readPrivate = () => JSON.parse(readFileSync(privatePath, 'utf8'))
+      const readPrivate = () => JSON.parse(readFileSync(usingSample() ? samplePath : privatePath, 'utf8'))
       const progress = progressRoutes({ readPrivate, assetsDir: resolve(__dirname, '../server/assets'), allowPreview: env.UNSOLVED_TEST_PREVIEW !== '0' })
       // Order matters: '/api/progress/reset' must be mounted before '/api/progress'.
       for (const path of ['/api/progress/reset', '/api/progress', '/api/notes', '/api/files']) use(path, progress.handlers[path])
@@ -114,7 +117,7 @@ function mockApi(env: Record<string, string>, alsoAtApi: boolean): Plugin {
         let privateData = false
         try {
           const d = readPrivate()
-          privateData = true
+          privateData = !usingSample()
           solution = !!d.solution
         } catch {
           /* missing file is a valid status */
@@ -123,6 +126,8 @@ function mockApi(env: Record<string, string>, alsoAtApi: boolean): Plugin {
         res.end(
           JSON.stringify({
             privateData,
+            sample: usingSample(),
+            sampleAnswers: usingSample() ? readPrivate().answers : undefined,
             solution,
             gemini: !!key && !key.startsWith('insert_'),
             model: env.GEMINI_MODEL || 'gemini-3.5-flash-lite',
@@ -167,7 +172,7 @@ function mockApi(env: Record<string, string>, alsoAtApi: boolean): Plugin {
           res.setHeader('Content-Type', 'application/json')
           let data
           try {
-            data = JSON.parse(readFileSync(privatePath, 'utf8'))
+            data = readPrivate()
           } catch {
             res.statusCode = 503
             return res.end(JSON.stringify({ error: 'server/private/case-private.json missing; ask the team for it' }))

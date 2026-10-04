@@ -37,7 +37,7 @@ cd web && npm run dev:api       # the site, with every /api request forwarded to
 
 To forward somewhere else, put `API_PROXY_TARGET=http://host:port` in the repo-root `.env` and restart `npm run dev`. `VITE_API_URL` (a separate API origin) is only for special cases; the dev server reads `.env` files from the **repo root**, not `web/` (an old `web/.env.local` is ignored).
 
-`run-dev.sh` starts Python with `UNSOLVED_DEV=1` so the Test Lab works against it (never set that on a public server). The `?preview=true` image bypass needs `UNSOLVED_TEST_PREVIEW=1` and is off by default.
+`run-dev.sh` starts Python with `UNSOLVED_DEV=1` (and `UNSOLVED_ALLOW_SAMPLE=1` when the private file is missing) so the Test Lab works against it (never set that on a public server). The `?preview=true` image bypass needs `UNSOLVED_TEST_PREVIEW=1` and is off by default.
 
 Keys: the server reads `GEMINI_API_KEY` and `ELEVEN_LABS_API_KEY` from the repo-root `.env` (real environment variables win).
 
@@ -46,7 +46,8 @@ Keys: the server reads `GEMINI_API_KEY` and `ELEVEN_LABS_API_KEY` from the repo-
 |---|---|
 | Boot screen says `[FAILED] Connecting to the investigation server` | Python isn't running (or not on port 8000). Start `bash server/run-dev.sh`, then press Enter on the boot screen. Check http://127.0.0.1:8000/api/health. |
 | Log-on says "Cannot load your progress" | The API answered with an error: usually the case file is missing. Check `server/private/case-private.json` exists. |
-| Locks, report or Notes fail with 503 | Same: `server/private/case-private.json` missing or invalid JSON. |
+| Locks, report or Notes fail with 503 | `server/private/case-private.json` is missing or invalid JSON (and the sample fallback isn't on). Use `run-dev.sh` (it falls back to the sample case), or get the real file. |
+| You want to test with no secrets at all | Dev only: leave `case-private.json` out. The mock (`npm run dev`) and `run-dev.sh` then use `server/sample/case-sample.json`: a fake case with fake answers (04=`0000`, 05=`SAMPLE`, 06=`1111`, culprit `bm`). The Test Lab shows "SAMPLE case data" and lists the answers. |
 | `ModuleNotFoundError: server` | Start uvicorn from the **repo root** (`python -m uvicorn server.main:app`), not from `server/`. |
 | `ModuleNotFoundError: fastapi` | The venv isn't being used or deps aren't installed: `server/.venv/bin/python -m pip install -r server/requirements.txt`. |
 | Python won't start but you still want to work | Dev only: on the boot screen's `[FAILED]` press **Continue without the API**, or toggle **Mock API (no Python)** in the Test Lab. Every request then goes to the built-in in-memory mock (`/mock-api`) and the page reloads; toggle it off the same way. The switch is saved in localStorage and does not exist in production builds. |

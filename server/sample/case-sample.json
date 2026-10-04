@@ -1,0 +1,181 @@
+{
+  "_comment": "SAMPLE case for frontend testing without the private file. Every answer, document and solution here is fake. Used only in development (mock server, or Python with UNSOLVED_ALLOW_SAMPLE=1).",
+  "answers": {
+    "04": "0000",
+    "05": "SAMPLE",
+    "06": "1111"
+  },
+  "hints": {
+    "04": [
+      "Sample hint 1: the PIN is four zeros.",
+      "Sample hint 2: type 0000."
+    ],
+    "05": [
+      "Sample hint 1: the password is the word SAMPLE.",
+      "Sample hint 2: type SAMPLE."
+    ],
+    "06": [
+      "Sample hint 1: read the engraving on the stone plate in file 04.",
+      "Sample hint 2: the digits are 1111."
+    ]
+  },
+  "files": {
+    "04": {
+      "id": "04",
+      "heading": "Sample Security Logs",
+      "sub": [
+        "Case SAMPLE | placeholder record"
+      ],
+      "blocks": [
+        {
+          "t": "h",
+          "text": "SAMPLE DATA"
+        },
+        {
+          "t": "note",
+          "text": "This is fake sample content for testing the interface. It is not part of the real case."
+        },
+        {
+          "t": "p",
+          "text": "Sample paragraph one. The sample PIN for this record is 0000."
+        },
+        {
+          "t": "p",
+          "text": "Sample paragraph two."
+        }
+      ]
+    },
+    "05": {
+      "id": "05",
+      "heading": "Sample Diamond Examination Report",
+      "sub": [
+        "Case SAMPLE | placeholder record"
+      ],
+      "blocks": [
+        {
+          "t": "h",
+          "text": "SAMPLE DATA"
+        },
+        {
+          "t": "note",
+          "text": "This is fake sample content for testing the interface. It is not part of the real case."
+        },
+        {
+          "t": "p",
+          "text": "Sample paragraph. A sample engraving R1111 is visible under magnification."
+        },
+        {
+          "t": "specimen",
+          "engraving": "R1111",
+          "caption": "Sample plate: use the lens to read the engraving."
+        }
+      ]
+    },
+    "06": {
+      "id": "06",
+      "heading": "Sample Purchase Records",
+      "sub": [
+        "Case SAMPLE | placeholder record"
+      ],
+      "blocks": [
+        {
+          "t": "h",
+          "text": "SAMPLE DATA"
+        },
+        {
+          "t": "note",
+          "text": "This is fake sample content for testing the interface. It is not part of the real case."
+        },
+        {
+          "t": "p",
+          "text": "Sample purchase record for testing."
+        },
+        {
+          "t": "rows",
+          "rows": [
+            {
+              "k": "Customer",
+              "v": "Sample Customer"
+            },
+            {
+              "k": "Item",
+              "v": "Sample imitation stone"
+            }
+          ]
+        }
+      ]
+    }
+  },
+  "solution": {
+    "culprit": "bm",
+    "claims": {
+      "opportunity": {
+        "best": [
+          "06"
+        ],
+        "ok": []
+      },
+      "falseAlibi": {
+        "best": [
+          "05"
+        ],
+        "ok": [
+          "01"
+        ]
+      },
+      "replica": {
+        "best": [
+          "04"
+        ],
+        "ok": [
+          "02"
+        ]
+      }
+    },
+    "chain": [
+      "SAMPLE explanation, step one: this is placeholder text for testing the result screen.",
+      "SAMPLE explanation, step two: the real explanation lives in the private case file.",
+      "SAMPLE explanation, step three: grading and scoring are real, the case is fake."
+    ],
+    "rubric": "SAMPLE RUBRIC for testing only. In this fake case the culprit is the suspect with id bm. A good theory names that suspect and cites sample records 04, 05 and 06. None of this matches the real case."
+  },
+  "devScenarios": [
+    {
+      "label": "Sample: winning accusation",
+      "note": "bm with records 06, 05, 04",
+      "draft": {
+        "culprit": "bm",
+        "evidence": [
+          "06",
+          "05",
+          "04"
+        ],
+        "theory": "In this fake case the sample records point at bm: the sample purchase records, examination report and security log all agree."
+      }
+    },
+    {
+      "label": "Sample: wrong culprit",
+      "note": "nb",
+      "draft": {
+        "culprit": "nb",
+        "evidence": [
+          "06",
+          "05",
+          "04"
+        ],
+        "theory": "Noah had access so he must have done it, which is wrong in this sample case."
+      }
+    },
+    {
+      "label": "Sample: right culprit, thin evidence",
+      "note": "bm with only the incident report",
+      "draft": {
+        "culprit": "bm",
+        "evidence": [
+          "01"
+        ],
+        "theory": "I think it was bm."
+      }
+    }
+  ]
+}

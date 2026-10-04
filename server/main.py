@@ -46,6 +46,10 @@ app.add_middleware(
 CASE_PATH = Path(os.environ.get(
     "UNSOLVED_CASE_PATH", str(Path(__file__).parent / "private" / "case-private.json")
 ))
+# Fake case for developers without the private file. Only used when UNSOLVED_ALLOW_SAMPLE=1 (run-dev.sh sets it when the
+# private file is missing). Never set it on a public server: it would serve fake answers instead of failing loudly.
+SAMPLE_PATH = Path(__file__).parent / "sample" / "case-sample.json"
+ALLOW_SAMPLE = os.environ.get("UNSOLVED_ALLOW_SAMPLE", "0") == "1"
 DATABASE_PATH = Path(os.environ.get("UNSOLVED_DB_PATH", str(Path(__file__).parent / "private" / "game.sqlite3")))
 STATIC_DIR = Path(os.environ.get("UNSOLVED_STATIC_DIR", str(REPO_ROOT / "web" / "dist")))
 DB_LOCK = RLock()
@@ -126,9 +130,16 @@ def remove_unlocked_file(uid, file_id):
         raise HTTPException(status_code=503, detail="Progress could not be saved.")
 
 
+def case_file():
+    """The real case file, or (developers only, when allowed) the fake sample."""
+    if not CASE_PATH.exists() and ALLOW_SAMPLE:
+        return SAMPLE_PATH
+    return CASE_PATH
+
+
 def load_case():
     try:
-        return json.loads(CASE_PATH.read_text(encoding="utf-8"))
+        return json.loads(case_file().read_text(encoding="utf-8"))
     except (OSError, ValueError):
         return None
 
@@ -218,7 +229,7 @@ class UnlockRequest(BaseModel):
 def unlock(body: UnlockRequest, request: Request):
     # Load server-only data. Never return the answer table to the browser.
     try:
-        data = json.loads(CASE_PATH.read_text(encoding="utf-8"))
+        data = json.loads(case_file().read_text(encoding="utf-8"))
         answers, files, hints = data["answers"], data["files"], data.get("hints", {})
         if not all(isinstance(value, dict) for value in (answers, files, hints)):
             raise ValueError("Invalid case data")
@@ -307,7 +318,9 @@ if DEV:
     def dev_status():
         case = load_case()
         return {
-            "privateData": case is not None,
+            "privateData": case is not None and case_file() == CASE_PATH,
+            "sample": case is not None and case_file() == SAMPLE_PATH,
+            "sampleAnswers": case["answers"] if case is not None and case_file() == SAMPLE_PATH else None,
             "solution": bool(case and case.get("solution")),
             "gemini": configured("GEMINI_API_KEY"),
             "model": os.environ.get("GEMINI_MODEL") or "gemini-3.5-flash-lite",

@@ -4,9 +4,11 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
+# No private case file? Fall back to the fake sample case so you can still test the whole interface.
 if [ ! -f server/private/case-private.json ]; then
-  echo "Missing server/private/case-private.json (the answers and locked files; ask the team for it)." >&2
-  exit 1
+  echo "NOTE: server/private/case-private.json not found. Using the SAMPLE case (fake answers 04=0000, 05=SAMPLE, 06=1111)."
+  echo "      Ask the team for the real file to test the real case."
+  export UNSOLVED_ALLOW_SAMPLE=1
 fi
 if [ ! -x server/.venv/bin/python ]; then
   echo "Creating server/.venv ..."

@@ -64,6 +64,8 @@ export async function devRelock(id: string): Promise<void> {
 
 export interface DevStatus {
   privateData: boolean
+  sample?: boolean // the fake sample case is in use (no private file)
+  sampleAnswers?: Record<string, string> // fake answers, only ever present with the sample
   solution: boolean
   gemini: boolean
   model: string
