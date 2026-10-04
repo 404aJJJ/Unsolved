@@ -77,7 +77,7 @@ export async function describeVoices(env: NarrateContext['env'], fetchImpl: type
       if (!narrationConfigured(env)) return { ...row, error: 'No ElevenLabs key set' }
       try {
         const res = await fetchImpl(`https://api.elevenlabs.io/v1/voices/${entry.voice}`, { headers: { 'xi-api-key': env.ELEVEN_LABS_API_KEY! }, signal: AbortSignal.timeout(15_000) })
-        if (!res.ok) return { ...row, error: `ElevenLabs HTTP ${res.status} (is this voice added to the account?)` }
+        if (!res.ok) return { ...row, note: res.status === 401 || res.status === 403 ? 'Details hidden: this API key lacks the "voices: read" permission. The voice can still be played.' : `ElevenLabs HTTP ${res.status} (is this voice added to the account?)`, error: res.status === 401 || res.status === 403 ? undefined : `ElevenLabs HTTP ${res.status} (is this voice added to the account?)` }
         const info = (await res.json()) as { name?: string; category?: string; description?: string; labels?: Record<string, string> }
         const l = info.labels ?? {}
         return { ...row, name: info.name, gender: l.gender, accent: l.accent, age: l.age, description: l.description ?? info.description, category: info.category }

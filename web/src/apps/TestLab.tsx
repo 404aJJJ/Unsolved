@@ -134,7 +134,7 @@ export function TestLab() {
                   <td>
                     <strong>{v.character}</strong>
                     <span>
-                      {v.error ? v.error : [v.name, v.gender, v.accent, v.age, v.description].filter(Boolean).join(' · ') || v.voice}
+                      {v.error ?? v.note ?? ([v.name, v.gender, v.accent, v.age, v.description].filter(Boolean).join(' · ') || v.voice)}
                     </span>
                   </td>
                   <td>

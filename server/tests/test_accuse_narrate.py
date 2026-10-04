@@ -303,6 +303,18 @@ class NarrateTests(Base):
         self.assertEqual(codes[39], 200)
         self.assertEqual(codes[-1], 429)
 
+    def test_dev_voice_check_copes_with_a_key_that_cannot_read_voices(self):
+        import asyncio
+
+        async def run():
+            self.mock_http(lambda request: httpx.Response(401, json={"detail": "missing_permissions"}))
+            with patch.dict("os.environ", {"ELEVEN_LABS_API_KEY": "k"}):
+                return await narrate_logic.describe_voices(app.state.http_transport)
+
+        rows = asyncio.run(run())
+        self.assertNotIn("error", rows[0])
+        self.assertIn("can still be played", rows[0]["note"])
+
     def test_dev_voice_check_reports_name_gender_and_accent(self):
         async def run():
             self.mock_http(lambda request: httpx.Response(200, json={"name": "Test Voice", "category": "shared", "labels": {"gender": "female", "accent": "british"}}))

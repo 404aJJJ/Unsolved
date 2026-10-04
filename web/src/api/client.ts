@@ -98,6 +98,7 @@ export interface DevVoice {
   accent?: string
   age?: string
   description?: string
+  note?: string // metadata unavailable but the voice may still work
   error?: string
 }
 

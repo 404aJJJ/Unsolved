@@ -96,6 +96,9 @@ async def describe_voices(transport=None):
                         labels = info.get("labels") or {}
                         row.update(name=info.get("name"), gender=labels.get("gender"), accent=labels.get("accent"), age=labels.get("age"),
                                    description=labels.get("description") or info.get("description"), category=info.get("category"))
+                    elif res.status_code in (401, 403):
+                        # A restricted key can speak without being allowed to read voice details.
+                        row["note"] = 'Details hidden: this API key lacks the "voices: read" permission. The voice can still be played.'
                     else:
                         row["error"] = f"ElevenLabs HTTP {res.status_code} (is this voice added to the account?)"
                 except Exception as err:
