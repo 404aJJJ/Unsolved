@@ -25,6 +25,8 @@ services:
     environment:
       # Your domain (e.g. unsolved.example.com) gets automatic HTTPS. Leave unset to serve plain http on the server's IP.
       DOMAIN: ${DOMAIN:-:80}
+      # Optional second name that also serves the site (for networks whose DNS blocks a brand-new domain).
+      ALT_DOMAIN: ${ALT_DOMAIN:-alt.localhost}
     volumes:
       - ./Caddyfile:/etc/caddy/Caddyfile:ro
       - caddy-data:/data

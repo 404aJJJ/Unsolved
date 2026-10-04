@@ -20,6 +20,9 @@ Companion to [api.md](api.md) (the contract) and [deploy-vultr.md](deploy-vultr.
 ## If the HTTPS address stops answering
 Symptom: the smoke test shows `000` for every check, `curl http://<server-ip>/api/health` still works, and port 443 is closed. Cause: Caddy was restarted without `DOMAIN`, so it fell back to plain http on port 80 and the Vercel rewrite (which needs HTTPS) breaks. Fix on the server: `cd ~/Unsolved && git pull && sudo bash deploy/setup-vultr.sh 45-76-235-124.sslip.io`. This writes `deploy/.env` so it cannot happen again.
 
+## A second name for networks that block the new domain
+UTSA's campus DNS answers `NXDOMAIN` for `unsolved.work` (its answers carry no SOA record, which points to a filter on newly registered domains, not ordinary caching), while `45-76-235-124.sslip.io` resolves there. Caddy can serve both names: `sudo bash deploy/setup-vultr.sh unsolved.work 45-76-235-124.sslip.io` (the second argument is saved in `deploy/.env` as `ALT_DOMAIN`). Use the sslip name for demos on campus Wi-Fi.
+
 ## Behaviour worth knowing
 - **One game per browser.** A random `uid` cookie (30 days, HttpOnly, Secure over https) keys progress and the notebook in SQLite (`/data/game.sqlite3` in the container). Clearing cookies or switching browser starts a fresh game on the server; the site's local save is separate.
 - **Secrets are only in `.env` and `case-private.json` on the server.** Neither is in git or the image. Without `case-private.json`: unlock and progress return 503. Without a real `GEMINI_API_KEY`: reports are still graded, with `theory.source: "offline"`. Without `ELEVEN_LABS_API_KEY`: `/api/narrate` returns 503 and the site falls back to the browser voice. `insert_...` placeholders count as "not set".

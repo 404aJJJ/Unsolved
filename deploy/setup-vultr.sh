@@ -6,6 +6,7 @@ set -euo pipefail
 
 cd "$(dirname "$0")/.."
 DOMAIN_ARG="${1:-}"
+ALT_ARG="${2:-}"   # optional second name, e.g. 45-76-235-124.sslip.io
 
 if [ "$(id -u)" -ne 0 ]; then
   echo "Run this as root (sudo bash deploy/setup-vultr.sh)." >&2
@@ -42,13 +43,17 @@ fi
 
 # Remember the domain in deploy/.env (gitignored). Compose reads it on every later `up`, so a plain
 # `docker compose up -d --build` during an update can never silently drop HTTPS back to plain http.
+SAVED_DOMAIN="$(grep -s '^DOMAIN=' deploy/.env | head -1 | cut -d= -f2-)"
+SAVED_ALT="$(grep -s '^ALT_DOMAIN=' deploy/.env | head -1 | cut -d= -f2-)"
+DOMAIN_ARG="${DOMAIN_ARG:-$SAVED_DOMAIN}"
+ALT_ARG="${ALT_ARG:-$SAVED_ALT}"
 if [ -n "$DOMAIN_ARG" ]; then
   echo "DOMAIN=$DOMAIN_ARG" > deploy/.env
+  if [ -n "$ALT_ARG" ]; then echo "ALT_DOMAIN=$ALT_ARG" >> deploy/.env; fi
 fi
-SAVED_DOMAIN="$(grep -s '^DOMAIN=' deploy/.env | head -1 | cut -d= -f2-)"
-DOMAIN_ARG="${DOMAIN_ARG:-$SAVED_DOMAIN}"
 export DOMAIN="${DOMAIN_ARG:-:80}"
-echo "Serving on: ${DOMAIN_ARG:-plain http (no domain)}"
+export ALT_DOMAIN="${ALT_ARG:-alt.localhost}"
+echo "Serving on: ${DOMAIN_ARG:-plain http (no domain)}${ALT_ARG:+ and ${ALT_ARG}}"
 docker compose -f deploy/docker-compose.yml up -d --build
 
 echo

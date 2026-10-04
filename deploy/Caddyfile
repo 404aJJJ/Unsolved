@@ -1,4 +1,6 @@
-{$DOMAIN::80} {
+# DOMAIN is the main name; ALT_DOMAIN is an optional second name served identically (it defaults to a harmless
+# .localhost placeholder, which Caddy never requests a public certificate for).
+{$DOMAIN::80}, {$ALT_DOMAIN:alt.localhost} {
 	encode gzip
 	reverse_proxy app:8000
 }
