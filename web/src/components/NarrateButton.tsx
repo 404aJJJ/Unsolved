@@ -1,13 +1,15 @@
+import type { Segment } from '../content/narration'
 import { useApi } from '../store/api'
 import { useNarrator } from '../store/narrator'
 
-// Reads `text` aloud. `id` identifies what is playing so only one button shows "Stop" at a time.
-export function NarrateButton({ id, text, label = 'Listen', className = '' }: { id: string; text: string; label?: string; className?: string }) {
+// Reads character speech aloud. `id` identifies what is playing so only one button shows "Stop" at a time.
+export function NarrateButton({ id, segments, label = 'Listen', className = '' }: { id: string; segments: Segment[]; label?: string; className?: string }) {
   const playingId = useNarrator((s) => s.playingId)
   const status = useNarrator((s) => s.status)
   const speak = useNarrator((s) => s.speak)
   const stop = useNarrator((s) => s.stop)
   const serverVoice = useApi((s) => s.features.narration)
+  if (!segments.some((s) => s.speaker && s.text)) return null
 
   const mine = playingId === id
   const loading = mine && status === 'loading'
@@ -16,8 +18,8 @@ export function NarrateButton({ id, text, label = 'Listen', className = '' }: { 
       type="button"
       className={`narrate ${mine ? 'narrate--on' : ''} ${className}`}
       aria-pressed={mine}
-      title={serverVoice ? 'Narrated by the case narrator' : 'Read aloud with your browser voice'}
-      onClick={() => (mine ? stop() : speak(id, text))}
+      title={serverVoice ? 'Hear it in the characters’ voices' : 'Read aloud with your browser voice'}
+      onClick={() => (mine ? stop() : void speak(id, segments))}
     >
       <svg width="13" height="13" viewBox="0 0 16 16" aria-hidden>
         {mine && !loading ? (

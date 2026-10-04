@@ -5,7 +5,6 @@ import type { FileId } from '../content/types'
 import { useGame } from '../store/game'
 import { useWindows } from '../store/windows'
 import { formatElapsed } from '../shell/caseTime'
-import { NarrateButton } from '../components/NarrateButton'
 import { openFile } from './files'
 import { fileReport } from './fileReport'
 import { useSession } from '../store/session'
@@ -225,7 +224,6 @@ function Result({ r }: { r: NonNullable<ReturnType<typeof useGame.getState>['res
       </p>
 
       <h3>How it really happened</h3>
-      <NarrateButton id="verdict" text={`${banner.title}. ${r.explanation.join(' ')} ${r.theory.feedback}`} label="Hear the verdict" />
       <ol className="chain">
         {r.explanation.map((line, i) => (
           <li key={i}>{line}</li>

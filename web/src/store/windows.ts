@@ -79,7 +79,7 @@ export function activeWindowId(windows: Win[]): string | null {
   return best?.id ?? null
 }
 
-// Narration ids are prefixed by what they read: doc-<file>, mail-<id>, chat-<id>, verdict.
+// Narration ids are prefixed by what they read: doc-<file> (interviews), mail-<id>, chat-<id>.
 function stopNarrationFor(win: Win) {
   const narrator = useNarrator.getState()
   const playing = narrator.playingId
@@ -87,8 +87,7 @@ function stopNarrationFor(win: Win) {
   const owns =
     (win.app === 'doc' && playing === `doc-${win.fileId}`) ||
     (win.app === 'mail' && playing.startsWith('mail-')) ||
-    (win.app === 'messages' && playing.startsWith('chat-')) ||
-    (win.app === 'report' && playing === 'verdict')
+    (win.app === 'messages' && playing.startsWith('chat-'))
   if (owns) narrator.stop()
 }
 

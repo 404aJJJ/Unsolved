@@ -85,5 +85,5 @@ Before the demo, a teammate who did not write the clues plays from files 01-03. 
 - **Untimed:** the clock counts up and only runs while the tab is visible.
 - The mode is chosen on the log-on screen at the start of a game and locked until the case is restarted. Restarting returns to the log-on screen.
 
-## Narration
-Nothing plays on its own. Documents, emails, chat threads and the verdict have a **Listen** button (server voice when available, the browser's voice otherwise). The taskbar Voice chip has mute, volume, stop and an **Auto-read** toggle that is **off** by default for players who want everything read as it opens.
+## Character voices
+Only characters are voiced, and only when the player presses **Listen**: the chat threads in Messages (one voice per speaker, the line being spoken is highlighted), the interview statements (file 02), and emails written by a character. Case documents, logs, reports and the verdict are read-only text. The taskbar Voice chip shows who is speaking and has mute, volume and stop.

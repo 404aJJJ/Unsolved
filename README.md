@@ -1,15 +1,28 @@
 # Unsolved.exe
 RowdyHacks '26 project: a detective casefile game for the web, played on a Vista-style desktop.
 
-## Run the frontend
+## Run it locally
+
+`server/private/case-private.json` (the real answers and locked files; gitignored, get it from the team) is optional for testing: **without it the dev server and `run-dev.sh` automatically use a fake sample case** (`server/sample/case-sample.json`; lock answers 04=`0000`, 05=`SAMPLE`, 06=`1111`, shown in the Test Lab). A repo-root `.env` (copy `.env.example`) is only needed for the Gemini and ElevenLabs keys.
+
+**Quick (frontend only, no Python).** The dev server mimics the whole API in memory.
 ```bash
 cd web
 npm install
 npm run dev
 ```
-Open http://localhost:5173.
+Open the address it prints (http://localhost:5173).
 
-Unlocking files 04-06 needs `server/private/case-private.json`. It holds the answers and locked content, so it is gitignored; get it from the team. Without it, locks show "server data missing".
+**With the real Python API** (use this to test what ships). Two terminals, both from the repo root:
+```bash
+bash server/run-dev.sh        # terminal 1: creates server/.venv on first run, API on http://127.0.0.1:8000
+```
+```bash
+cd web && npm install && npm run dev:api     # terminal 2: the site, with /api forwarded to Python
+```
+On Windows, terminal 1 is: `py -m venv server\.venv`, `server\.venv\Scripts\pip install -r server\requirements.txt`, then `set UNSOLVED_DEV=1` and `server\.venv\Scripts\python -m uvicorn server.main:app --reload --port 8000`.
+
+Python won't start? In dev, the boot screen's `[FAILED]` offers **Continue without the API**, and the Test Lab has a **Mock API (no Python)** toggle; both switch the site to the built-in mock. Other problems: see "Troubleshooting" in [server/README.md](server/README.md).
 
 ## Layout
 - `web/` – React + Vite + TypeScript frontend (shell, apps, content components, mock API)

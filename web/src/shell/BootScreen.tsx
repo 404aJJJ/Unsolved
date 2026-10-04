@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { CASE_IMAGES } from '../content/caseImages'
+import { mockApiActive, setMockApi } from '../api/http'
 import { useApi } from '../store/api'
 
 // A text-mode boot, like a Linux console: kernel-style lines with timestamps and [ OK ] markers.
@@ -99,6 +100,7 @@ export function BootScreen({ onDone }: { onDone: () => void }) {
         return
       }
       mark(net, 'ok')
+      if (import.meta.env.DEV && mockApiActive()) add('Dev: using the built-in mock API (no Python). Turn it off in the Test Lab.', 'warn')
       await flavour(`Server features: narration=${features.narration ? 'server voice' : 'browser voice'}, grading-ai=${features.gradingAI ? 'on' : 'off'}`, 'ok', 120)
       if (!live) return
 
@@ -144,9 +146,16 @@ export function BootScreen({ onDone }: { onDone: () => void }) {
           </div>
         ))}
         {failed ? (
-          <button className="boot__retry" onClick={retry}>
-            &gt; Try again
-          </button>
+          <>
+            <button className="boot__retry" onClick={retry}>
+              &gt; Try again
+            </button>
+            {import.meta.env.DEV && (
+              <button className="boot__retry boot__retry--dev" onClick={() => setMockApi(true)} title="Dev only: use the in-memory mock API instead of Python">
+                &gt; Continue without the API (dev: use the built-in mock)
+              </button>
+            )}
+          </>
         ) : (
           <span className="boot__cursor" aria-hidden />
         )}

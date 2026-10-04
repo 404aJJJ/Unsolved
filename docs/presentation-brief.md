@@ -14,7 +14,7 @@ London, present day. A famous diamond held at a bank was swapped during an appra
 3. **Three different minigames** skin the locks: a UAC-style PIN pad, a GTA-style hacking grid, and a magnifier you drag over the gem to find an engraving. A plain text box is always available as a fallback.
 4. **The answer never ships to the browser.** Unlock answers, locked file contents and the grading rubric live only on the server. Players cannot read the culprit out of devtools.
 5. **Free-text accusation graded by Gemini.** You write your theory in your own words. The server grades it against a hidden rubric and the result screen explains the reasoning chain without handing over missed answers.
-6. **Opt-in narration (ElevenLabs).** Nothing autoplays. Documents, emails, chats and the verdict have a Listen button.
+6. **Character voices (ElevenLabs).** Nothing autoplays. Chat messages, interview statements and character emails have a Listen button; each person speaks in their own voice, and the message being spoken is highlighted. Case documents and the verdict are not narrated.
 7. **Graceful fallbacks.** With every AI feature off the game still plays (static grading, browser voice).
 
 ## Prize tracks and the honest claim for each
@@ -64,7 +64,7 @@ Slides should show the Case Board and cross-examination only as "next steps", no
 - Run from the **live Vultr URL**, not localhost, since that is the Vultr claim. Have localhost as a backup.
 - Start a **fresh player** (private window or clear cookies): progress is per browser via cookie, so an old session will skip the locks you want to show.
 - The log-on screen asks for a mode. **Timed** is more dramatic; **Untimed** is safer if you are talking while playing.
-- Do not narrate-by-default; use the Listen button once for effect.
+- Do not narrate-by-default; press Listen on a chat thread once for effect (the voices are the point).
 - Never open the Test Lab on the live site; it should be off in production.
 - Rehearse the winning path from the private script at least twice and time it. The full path should fit a 3-4 minute demo.
 - Have the failure plan ready: if Gemini is slow or down, the verdict falls back to static grading. Say so rather than waiting in silence.

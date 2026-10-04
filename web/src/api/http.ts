@@ -14,7 +14,35 @@ interface RequestOptions {
   signal?: AbortSignal
 }
 
+// Dev only: send every request to the built-in mock (/mock-api) instead of the real API, so the site runs with no Python.
+// The flag lives in localStorage; production builds ignore it (import.meta.env.DEV is false and this code is removed).
+const MOCK_KEY = 'unsolved-mock-api'
+function mockApiOn() {
+  try {
+    return localStorage.getItem(MOCK_KEY) === '1'
+  } catch {
+    return false
+  }
+}
+
+export function mockApiActive() {
+  return import.meta.env.DEV && mockApiOn()
+}
+
+// Turn the mock on or off and reload, so every request and image URL picks the new target.
+export function setMockApi(on: boolean) {
+  if (!import.meta.env.DEV) return
+  try {
+    if (on) localStorage.setItem(MOCK_KEY, '1')
+    else localStorage.removeItem(MOCK_KEY)
+  } catch {
+    /* storage blocked: nothing to switch */
+  }
+  location.reload()
+}
+
 export function apiUrl(path: string) {
+  if (import.meta.env.DEV && mockApiOn()) return path.replace(/^\/api/, '/mock-api')
   return `${API_BASE}${path}`
 }
 

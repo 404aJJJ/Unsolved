@@ -24,13 +24,13 @@ export function EmailView({ email, compact = false }: { email: Email; compact?: 
   )
 }
 
-export function MessageThread({ title, msgs }: { title?: string; msgs: ChatMessage[] }) {
+export function MessageThread({ title, msgs, speakingIndex = -1 }: { title?: string; msgs: ChatMessage[]; speakingIndex?: number }) {
   const first = msgs[0]?.from
   return (
     <div className="thread">
       {title && <div className="thread__title">{title}</div>}
       {msgs.map((m, i) => (
-        <div key={i} style={{ animationDelay: `${i * 90}ms` }} className={`bubble ${m.from === first ? 'bubble--them' : 'bubble--me'}`}>
+        <div key={i} style={{ animationDelay: `${i * 90}ms` }} className={`bubble ${m.from === first ? 'bubble--them' : 'bubble--me'}${i === speakingIndex ? ' bubble--speaking' : ''}`}>
           <span className="bubble__from">
             {m.from}
             {m.time && <span className="bubble__time"> · {m.time}</span>}
