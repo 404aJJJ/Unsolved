@@ -43,7 +43,7 @@ export function MailApp() {
   return (
     <div className="mail">
       <nav className="mail__folders">
-        {([{ id: 'inbox', label: `Inbox (${inbox.length})` }, { id: 'sent', label: 'Sent Items' }, { id: 'deleted', label: 'Deleted Items' }] as const).map((f) => (
+        {([{ id: 'inbox', label: `Inbox (${inbox.length})` }, { id: 'sent', label: 'Sent Items' }, { id: 'deleted', label: `Deleted Items${deleted.length ? ` (${deleted.length})` : ''}` }] as const).map((f) => (
           <button key={f.id} className={`mail__folder ${folder === f.id ? 'mail__folder--on' : ''}`} aria-pressed={folder === f.id} onClick={() => { setFolder(f.id); setSel('') }}>
             {f.label}
           </button>
