@@ -351,5 +351,8 @@ if (STATIC_DIR / "index.html").is_file():
             return JSONResponse(status_code=404, content={"error": "unknown endpoint"})
         candidate = (STATIC_DIR / path).resolve()
         if path and candidate.is_file() and STATIC_DIR.resolve() in candidate.parents:
-            return FileResponse(candidate)
+            # The slim Docker image has no system mime table, so name the types we ship explicitly.
+            known = {".webp": "image/webp", ".svg": "image/svg+xml", ".js": "text/javascript", ".css": "text/css"}
+            headers = {"Cache-Control": "public, max-age=86400"} if path.startswith("evidence/") else None
+            return FileResponse(candidate, media_type=known.get(candidate.suffix), headers=headers)
         return FileResponse(STATIC_DIR / "index.html", headers={"Cache-Control": "no-cache"})
