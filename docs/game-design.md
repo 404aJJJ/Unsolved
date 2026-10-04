@@ -79,3 +79,11 @@ Stretch: sound, mobile, extra cases.
 
 ## Playtest
 Before the demo, a teammate who did not write the clues plays from files 01-03. Check: every unlock answer is findable, every timestamp agrees across files, and the final explanation rests on independent evidence rather than motive alone.
+
+## Game modes
+- **Timed (default):** 30:00 to file the final report. The clock counts down in the case panel and the taskbar, warns at 5:00 and 1:00, and turns red under five minutes. It follows the wall clock, so leaving the tab does not pause it. At zero the current draft is filed automatically (an empty draft counts as accusing no one) and the player sees the normal explanation.
+- **Untimed:** the clock counts up and only runs while the tab is visible.
+- The mode is chosen on the log-on screen at the start of a game and locked until the case is restarted. Restarting returns to the log-on screen.
+
+## Narration
+The case brief reads itself once per game right after log-on. Documents, emails and chat threads read themselves when opened. The taskbar Voice chip has mute, volume and an **Auto: on/off** toggle that turns this off (manual Listen buttons keep working).

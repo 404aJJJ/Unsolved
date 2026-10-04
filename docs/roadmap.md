@@ -38,8 +38,8 @@ Stack by lane: **React + Vite + TypeScript** for all frontend work (shell, apps,
 - [ ] `GET /case` public data (suspects, files 01-03, lock prompts, hints)
 - [ ] `POST /unlock {fileId, answer}`: server compares (trim, case-insensitive, 4-digit numeric strings); on success returns the file content
 - [ ] Locked contents never served before unlock; unlocked state kept per session
-- [ ] `POST /accuse`: culprit, evidence claims, free-text theory; returns verdict, per-claim feedback, reasoning-chain explanation
-- [ ] Gemini grading with structured JSON, prompt-injection guard, static fallback, cached verdicts
+- [x] `POST /accuse`: culprit, evidence claims, free-text theory; returns verdict, per-claim feedback, reasoning-chain explanation (dev implementation in `web/dev-api/accuse.ts`, Python port pending)
+- [x] Gemini grading with structured JSON, prompt-injection guard, static fallback, cached verdicts (dev implementation; needs a real key to test live)
 - [ ] Deploy to Vultr; register the domain at GoDaddy and point it at the deploy
 
 ### 4. Locks and minigames (build in this order)
@@ -51,7 +51,7 @@ Stack by lane: **React + Vite + TypeScript** for all frontend work (shell, apps,
 
 ### 5. Polish and demo
 - [ ] Clip-and-drag into Notes, Case Board pinning
-- [ ] ElevenLabs narration / voiced statements
+- [~] ElevenLabs narration: frontend ready (narrator, buttons, `/api/config` + `/api/narrate` contract, dev mock, browser-voice fallback); backend endpoint and voiced statements pending
 - [ ] Sounds, animations, window polish
 - [ ] Completion screen with the epilogue
 - [ ] Playtest by someone who did not write the clues; fix anything unfindable

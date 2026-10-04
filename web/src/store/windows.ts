@@ -1,7 +1,7 @@
 import { create } from 'zustand'
 import type { FileId } from '../content/types'
 
-export type AppId = 'files' | 'mail' | 'messages' | 'notes' | 'board' | 'report' | 'clock' | 'doc'
+export type AppId = 'files' | 'mail' | 'messages' | 'notes' | 'board' | 'report' | 'clock' | 'testlab' | 'doc'
 
 // Animation phase a window is in; the Window component finishes it on animationend.
 export type WinAnim = 'open' | 'close' | 'min' | 'restore' | null
@@ -43,7 +43,8 @@ export const APP_META: Record<AppId, { title: string; w: number; h: number }> = 
   messages: { title: 'Messages', w: 640, h: 480 },
   notes: { title: 'Notes', w: 460, h: 420 },
   board: { title: 'Case Board', w: 860, h: 560 },
-  report: { title: 'Submit Report', w: 560, h: 440 },
+  report: { title: 'Submit Report', w: 680, h: 580 },
+  testlab: { title: 'Test Lab', w: 720, h: 600 },
   clock: { title: 'Clock', w: 460, h: 530 },
   doc: { title: 'Case Viewer', w: 700, h: 560 },
 }

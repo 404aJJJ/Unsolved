@@ -3,6 +3,7 @@ import { FILES } from '../content/case'
 import { useGame } from '../store/game'
 import { useWindows } from '../store/windows'
 import { AnalogClock } from './AnalogClock'
+import { useClockLabel } from './caseTime'
 import { Elapsed } from './CaseTimer'
 import { useNow } from './useNow'
 
@@ -49,6 +50,7 @@ function CalendarWidget() {
 function CaseWidget() {
   const unlocked = useGame((s) => s.unlocked)
   const count = FILES.filter((f) => !f.lock || unlocked[f.id]).length
+  const label = useClockLabel()
   return (
     <aside className="widget widget--case" aria-label="Case status">
       <div className="widget__title">Case PB-062</div>
@@ -63,7 +65,7 @@ function CaseWidget() {
         <div className="progress__fill" style={{ width: `${(count / FILES.length) * 100}%` }} />
       </div>
       <div className="gadget__time">
-        <span>Time on case</span>
+        <span>{label}</span>
         <Elapsed />
       </div>
       <div className={`gadget__status ${count === FILES.length ? 'gadget__status--ready' : ''}`}>{count === FILES.length ? 'Ready to report' : 'Investigation open'}</div>

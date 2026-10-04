@@ -1,14 +1,18 @@
 import { useState } from 'react'
+import { NarrateButton } from '../components/NarrateButton'
+import { useAutoNarrate } from '../components/useAutoNarrate'
 import { EmailView, MessageThread } from '../components/content'
 import { EMAILS, FILES, MESSAGE_THREADS, SUSPECTS, SUSPECT_PHOTOS } from '../content/case'
 import { CASE_IMAGES } from '../content/caseImages'
+import { chatScript, docScript, emailScript } from '../content/narration'
 import type { FileId } from '../content/types'
 import { useGame } from '../store/game'
-import { getDoc, openFile } from './files'
+import { getDoc } from './files'
 
 export function DocWindow({ fileId, preview = false }: { fileId: FileId; preview?: boolean }) {
   useGame((s) => s.unlocked[fileId]) // re-render once an unlock lands
   const doc = getDoc(fileId)
+  useAutoNarrate(`doc-${fileId}`, doc ? docScript(doc) : '')
   if (!doc && !preview) return <div className="empty">This record is restricted.</div>
   const image = CASE_IMAGES[fileId]
   const entry = FILES.find((f) => f.id === fileId)!
@@ -17,6 +21,7 @@ export function DocWindow({ fileId, preview = false }: { fileId: FileId; preview
       <div className="viewer__bar">
         <span className="file__id file__id--sm">{entry.number}</span>
         <strong>{image.title}</strong>
+        {doc && <NarrateButton id={`doc-${fileId}`} text={docScript(doc)} />}
         <span className="viewer__muted">Evidence {entry.number} of {String(FILES.length).padStart(2, '0')} · {preview ? 'test preview' : 'read-only'}</span>
       </div>
       <div className="viewer__scroll">
@@ -33,6 +38,7 @@ export function MailApp() {
   const deleted = EMAILS.filter((e) => e.id === 'e3')
   const emails = folder === 'inbox' ? inbox : folder === 'deleted' ? deleted : []
   const email = emails.find((e) => e.id === sel) ?? emails[0]
+  useAutoNarrate(email ? `mail-${email.id}` : 'mail', email ? emailScript(email) : '')
   return (
     <div className="mail">
       <nav className="mail__folders">
@@ -55,7 +61,14 @@ export function MailApp() {
         ))}
       </ul>
       <div className="mail__read" key={email?.id ?? folder}>
-        {email && <EmailView email={email} />}
+        {email && (
+          <>
+            <div className="mail__tools">
+              <NarrateButton id={`mail-${email.id}`} text={emailScript(email)} />
+            </div>
+            <EmailView email={email} />
+          </>
+        )}
       </div>
     </div>
   )
@@ -64,6 +77,7 @@ export function MailApp() {
 export function MessagesApp() {
   const [sel, setSel] = useState(MESSAGE_THREADS[0].id)
   const thread = MESSAGE_THREADS.find((t) => t.id === sel)!
+  useAutoNarrate(`chat-${thread.id}`, chatScript(thread.title, thread.msgs))
   return (
     <div className="im">
       <ul className="im__contacts">
@@ -79,7 +93,10 @@ export function MessagesApp() {
         <li className="im__note">Source: Interviews</li>
       </ul>
       <div className="im__chat">
-        <div className="im__chathead">{thread.title}</div>
+        <div className="im__chathead">
+          {thread.title}
+          <NarrateButton id={`chat-${thread.id}`} text={chatScript(thread.title, thread.msgs)} />
+        </div>
         <div className="im__scroll" key={thread.id}>
           <MessageThread msgs={thread.msgs} />
         </div>
@@ -127,41 +144,6 @@ export function BoardApp() {
             />
           </article>
         ))}
-      </div>
-    </div>
-  )
-}
-
-export function ReportApp() {
-  const unlocked = useGame((s) => s.unlocked)
-  const count = FILES.filter((f) => !f.lock || unlocked[f.id]).length
-  const ready = count === FILES.length
-  return (
-    <div className="report">
-      <h2>Investigation report</h2>
-      <p className="report__lead">Name the culprit and support your theory with evidence. Recovering every record does not close the case; you decide when you are ready.</p>
-      <ul className="report__checklist">
-        {FILES.map((f) => {
-          const ok = !f.lock || !!unlocked[f.id]
-          return (
-            <li key={f.id}>
-              <button className={`report__item ${ok ? 'report__item--ok' : ''}`} onClick={() => openFile(f.id)}>
-                <span className="report__id">{f.number}</span>
-                <span className="report__name">{f.title}</span>
-                <span className={`chip ${ok ? 'chip--new' : 'chip--restricted'}`}>{ok ? 'Recovered' : 'Restricted'}</span>
-              </button>
-            </li>
-          )
-        })}
-      </ul>
-      <div className="progress" role="progressbar" aria-valuemin={0} aria-valuemax={FILES.length} aria-valuenow={count} aria-label="Records recovered">
-        <div className="progress__fill" style={{ width: `${(count / FILES.length) * 100}%` }} />
-      </div>
-      <div className="report__foot">
-        <span className="uac__muted">{ready ? 'All records recovered. Ready when you are.' : `${count} of ${FILES.length} records recovered. Recover the rest to begin your report.`}</span>
-        <button className="btn btn--primary" disabled={!ready}>
-          Begin report
-        </button>
       </div>
     </div>
   )
