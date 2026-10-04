@@ -5,11 +5,11 @@ import { resolve } from 'node:path'
 import type { Connect } from 'vite'
 
 const IMAGES: Record<string, string> = {
-  '01': 'incidentReport_01.png',
-  '02': 'interviewStatements_02.png',
-  '04': 'securityLogs_03.png',
-  '05': 'diamondExamReport_04.png',
-  '06': 'purchaseRecords_05.png',
+  '01': 'incidentReport_01.webp',
+  '02': 'interviewStatements_02.webp',
+  '04': 'securityLogs_03.webp',
+  '05': 'diamondExamReport_04.webp',
+  '06': 'purchaseRecords_05.webp',
 }
 const LOCKED = new Set(['04', '05', '06'])
 
@@ -68,7 +68,7 @@ export function progressRoutes(opts: { readPrivate: () => any; assetsDir: string
       const path = resolve(opts.assetsDir, file)
       if (!existsSync(path)) return json(res, 404, { error: 'Image not found.' })
       res.statusCode = 200
-      res.setHeader('Content-Type', 'image/png')
+      res.setHeader('Content-Type', 'image/webp')
       res.setHeader('Cache-Control', 'no-store')
       res.end(readFileSync(path))
     },

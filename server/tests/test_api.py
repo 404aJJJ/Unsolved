@@ -33,11 +33,11 @@ class ApiTests(unittest.TestCase):
         self.client = TestClient(app)
         self.addCleanup(self.client.close)
 
-    def test_incident_image_returns_original_png(self):
-        image_path = Path(__file__).parents[1] / "assets" / "incidentReport_01.png"
+    def test_incident_image_returns_original_image(self):
+        image_path = Path(__file__).parents[1] / "assets" / "incidentReport_01.webp"
         response = self.client.get("/api/files/01/image")
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.headers["content-type"], "image/png")
+        self.assertEqual(response.headers["content-type"], "image/webp")
         self.assertEqual(response.content, image_path.read_bytes())
 
     def test_incident_image_missing(self):
@@ -82,7 +82,7 @@ class ApiTests(unittest.TestCase):
         self.assertEqual(response.headers["access-control-allow-origin"], "http://localhost:5173")
 
     def test_each_locked_image_requires_its_own_correct_answer(self):
-        filenames = {"04": "securityLogs_03.png", "05": "diamondExamReport_04.png", "06": "purchaseRecords_05.png"}
+        filenames = {"04": "securityLogs_03.webp", "05": "diamondExamReport_04.webp", "06": "purchaseRecords_05.webp"}
         for id, filename in filenames.items():
             url = f"/api/files/{id}/image"
             self.assertEqual(self.client.get(url).status_code, 403)

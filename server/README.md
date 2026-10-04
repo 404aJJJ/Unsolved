@@ -76,7 +76,7 @@ requests, unavailable data, and browser access from the frontend's local address
 
 ## Images and saved unlock progress
 
-All five PNGs are in `server/assets/` and served by Python:
+All five WebP images are in `server/assets/` and served by Python (files 01 and 02 are also copied to `web/public/evidence/` so a static host can serve them):
 
 | Display number | API URL | Access |
 | --- | --- | --- |

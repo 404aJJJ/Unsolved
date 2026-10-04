@@ -88,11 +88,11 @@ Dev only, enabled with `UNSOLVED_DEV=1` (never on the public server; the Test La
 
 ## Image endpoints
 
-GET `/api/files/01/image` and `/api/files/02/image` return public PNGs.
+GET `/api/files/01/image` and `/api/files/02/image` return public WebP images. The website itself loads these two from static files (`web/public/evidence/`, served by Vercel's CDN), so the endpoints are a fallback; keep the files identical.
 GET `/api/files/04/image`, `/api/files/05/image`, and `/api/files/06/image`
 return Security Logs, Diamond Examination Report, and Purchase Records. They
 check saved unlock progress and return HTTP 403 while locked, or HTTP 404 if the
-image is missing. Responses are `image/png`; locked images use `Cache-Control: no-store`.
+image is missing. Responses are `image/webp` (converted from the original PNG scans, about 90% smaller); locked images use `Cache-Control: no-store`.
 
 Developer testing: `?preview=true` skips the lock without saving progress, but only when
 `UNSOLVED_TEST_PREVIEW=1`. It is **off by default** and must stay off in production.

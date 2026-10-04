@@ -58,11 +58,11 @@ UID_PATTERN = re.compile(r"^[a-f0-9]{32}$")
 COOKIE_MAX_AGE = 60 * 60 * 24 * 30
 
 IMAGES = {
-    "01": "incidentReport_01.png",
-    "02": "interviewStatements_02.png",
-    "04": "securityLogs_03.png",
-    "05": "diamondExamReport_04.png",
-    "06": "purchaseRecords_05.png",
+    "01": "incidentReport_01.webp",
+    "02": "interviewStatements_02.webp",
+    "04": "securityLogs_03.webp",
+    "05": "diamondExamReport_04.webp",
+    "06": "purchaseRecords_05.webp",
 }
 
 
@@ -259,7 +259,7 @@ def evidence_image(file_id: str, request: Request, preview: bool = False):
     if not image_path.is_file():
         return JSONResponse(status_code=404, content={"error": "Image not found."})
     headers = {"Cache-Control": "no-store"} if file_id in LOCKED_IDS else {"Cache-Control": "public, max-age=3600"}
-    return FileResponse(image_path, media_type="image/png", headers=headers)
+    return FileResponse(image_path, media_type="image/webp", headers=headers)
 
 
 # ---------- final report (Gemini) ----------
