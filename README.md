@@ -22,7 +22,7 @@ cd web && npm install && npm run dev:api     # terminal 2: the site, with /api f
 ```
 On Windows, terminal 1 is: `py -m venv server\.venv`, `server\.venv\Scripts\pip install -r server\requirements.txt`, then `set UNSOLVED_DEV=1` and `server\.venv\Scripts\python -m uvicorn server.main:app --reload --port 8000`.
 
-Stuck? See "Troubleshooting" in [server/README.md](server/README.md).
+Python won't start? In dev, the boot screen's `[FAILED]` offers **Continue without the API**, and the Test Lab has a **Mock API (no Python)** toggle; both switch the site to the built-in mock. Other problems: see "Troubleshooting" in [server/README.md](server/README.md).
 
 ## Layout
 - `web/` – React + Vite + TypeScript frontend (shell, apps, content components, mock API)

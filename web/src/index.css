@@ -2246,6 +2246,10 @@ button {
   background: none;
   cursor: pointer;
 }
+.boot__retry--dev {
+  display: block;
+  color: #f0c050;
+}
 .boot__retry:hover {
   text-decoration: underline;
 }

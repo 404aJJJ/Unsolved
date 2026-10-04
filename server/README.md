@@ -49,6 +49,7 @@ Keys: the server reads `GEMINI_API_KEY` and `ELEVEN_LABS_API_KEY` from the repo-
 | Locks, report or Notes fail with 503 | Same: `server/private/case-private.json` missing or invalid JSON. |
 | `ModuleNotFoundError: server` | Start uvicorn from the **repo root** (`python -m uvicorn server.main:app`), not from `server/`. |
 | `ModuleNotFoundError: fastapi` | The venv isn't being used or deps aren't installed: `server/.venv/bin/python -m pip install -r server/requirements.txt`. |
+| Python won't start but you still want to work | Dev only: on the boot screen's `[FAILED]` press **Continue without the API**, or toggle **Mock API (no Python)** in the Test Lab. Every request then goes to the built-in in-memory mock (`/mock-api`) and the page reloads; toggle it off the same way. The switch is saved in localStorage and does not exist in production builds. |
 | Site works but the Python API is never hit | You ran `npm run dev` (mock). Use `npm run dev:api`. A changed `.env` needs a Vite restart. |
 | Port 8000 or 5173 already in use | Stop the other process (`lsof -i :8000`). If you moved the API, set `API_PROXY_TARGET` in `.env`. |
 | Progress seems shared or lost between runs | Each browser has its own game via a cookie; clearing cookies starts a new one. Data lives in `server/private/game.sqlite3` (delete it to reset everything). |

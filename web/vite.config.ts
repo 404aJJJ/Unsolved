@@ -1,7 +1,7 @@
 import react from '@vitejs/plugin-react'
 import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
-import { defineConfig, loadEnv, type Plugin } from 'vite'
+import { defineConfig, loadEnv, type Connect, type Plugin } from 'vite'
 import { handleAccuse } from './dev-api/accuse.ts'
 import { progressRoutes } from './dev-api/progress.ts'
 import { handleNarrate, narrationConfigured, narrationVoice } from './dev-api/narrate.ts'
@@ -9,22 +9,28 @@ import { handleNarrate, narrationConfigured, narrationVoice } from './dev-api/na
 // Dev-only stand-in for the FastAPI backend. Implements the contract in docs/api.md
 // using the gitignored server/private/case-private.json, so answers never enter the client bundle.
 // Set VITE_API_URL to point the client at the real backend instead.
-function mockApi(env: Record<string, string>): Plugin {
+function mockApi(env: Record<string, string>, alsoAtApi: boolean): Plugin {
   const privatePath = resolve(__dirname, '../server/private/case-private.json')
   const normalize = (s: string) => s.trim().toUpperCase()
 
   return {
     name: 'unsolved-mock-api',
     configureServer(server) {
+      // The mock always answers at /mock-api (the dev-only "Use mock API" button switches the site to it, even when /api
+      // is forwarded to Python). It also answers at /api unless API_PROXY_TARGET / `npm run dev:api` sends /api to Python.
+      const use = (path: string, handler: Connect.NextHandleFunction) => {
+        server.middlewares.use(path.replace('/api', '/mock-api'), handler)
+        if (alsoAtApi) server.middlewares.use(path, handler)
+      }
       const readPrivate = () => JSON.parse(readFileSync(privatePath, 'utf8'))
       const progress = progressRoutes({ readPrivate, assetsDir: resolve(__dirname, '../server/assets'), allowPreview: env.UNSOLVED_TEST_PREVIEW !== '0' })
       // Order matters: '/api/progress/reset' must be mounted before '/api/progress'.
-      for (const path of ['/api/progress/reset', '/api/progress', '/api/notes', '/api/files']) server.middlewares.use(path, progress.handlers[path])
-      server.middlewares.use('/api/health', (_req, res) => {
+      for (const path of ['/api/progress/reset', '/api/progress', '/api/notes', '/api/files']) use(path, progress.handlers[path])
+      use('/api/health', (_req, res) => {
         res.setHeader('Content-Type', 'application/json')
         res.end(JSON.stringify({ ok: true }))
       })
-      server.middlewares.use('/api/dev/relock', (req, res) => {
+      use('/api/dev/relock', (req, res) => {
         let raw = ''
         req.on('data', (c) => (raw += c))
         req.on('end', () => {
@@ -35,13 +41,13 @@ function mockApi(env: Record<string, string>): Plugin {
       })
 
       // What the backend can do. The client hides or degrades features whose flag is false.
-      server.middlewares.use('/api/config', (_req, res) => {
+      use('/api/config', (_req, res) => {
         res.setHeader('Content-Type', 'application/json')
         const gemini = !!env.GEMINI_API_KEY && !env.GEMINI_API_KEY.startsWith('insert_')
         res.end(JSON.stringify({ features: { narration: narrationConfigured(env), gradingAI: gemini } }))
       })
 
-      server.middlewares.use('/api/narrate', (req, res) => {
+      use('/api/narrate', (req, res) => {
         if (req.method !== 'POST') {
           res.statusCode = 405
           return res.end()
@@ -68,7 +74,7 @@ function mockApi(env: Record<string, string>): Plugin {
         })
       })
 
-      server.middlewares.use('/api/accuse', (req, res) => {
+      use('/api/accuse', (req, res) => {
         res.setHeader('Content-Type', 'application/json')
         if (req.method !== 'POST') {
           res.statusCode = 405
@@ -102,7 +108,7 @@ function mockApi(env: Record<string, string>): Plugin {
       })
 
       // Dev only: what the Test Lab shows as status lights. Never reports secrets, only whether they are set.
-      server.middlewares.use('/api/dev/status', (_req, res) => {
+      use('/api/dev/status', (_req, res) => {
         res.setHeader('Content-Type', 'application/json')
         let solution = false
         let privateData = false
@@ -127,7 +133,7 @@ function mockApi(env: Record<string, string>): Plugin {
       })
 
       // Dev only: canned reports for the Test Lab. They hold the solution, so they never ship in the client bundle.
-      server.middlewares.use('/api/dev/scenarios', (_req, res) => {
+      use('/api/dev/scenarios', (_req, res) => {
         res.setHeader('Content-Type', 'application/json')
         try {
           res.end(JSON.stringify({ scenarios: readPrivate().devScenarios ?? [] }))
@@ -138,7 +144,7 @@ function mockApi(env: Record<string, string>): Plugin {
       })
 
       // Dev only: every record at once, so the end game can be tested without replaying the locks.
-      server.middlewares.use('/api/dev/files', (_req, res) => {
+      use('/api/dev/files', (_req, res) => {
         res.setHeader('Content-Type', 'application/json')
         try {
           const data = readPrivate()
@@ -150,7 +156,7 @@ function mockApi(env: Record<string, string>): Plugin {
         }
       })
 
-      server.middlewares.use('/api/unlock', (req, res) => {
+      use('/api/unlock', (req, res) => {
         if (req.method !== 'POST') {
           res.statusCode = 405
           return res.end()
@@ -201,7 +207,7 @@ export default defineConfig(({ mode }) => {
     // Lets the root .env supply VITE_* values to the client (only VITE_-prefixed keys are ever exposed).
     envDir: resolve(__dirname, '..'),
     // With API_PROXY_TARGET set, /api goes to the real backend (no CORS needed) and the mock is off.
-    plugins: [react(), ...(proxyTarget ? [] : [mockApi(env)])],
+    plugins: [react(), mockApi(env, !proxyTarget)],
     server: proxyTarget ? { proxy: { '/api': { target: proxyTarget, changeOrigin: true } } } : undefined,
   }
 })

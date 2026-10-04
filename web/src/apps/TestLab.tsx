@@ -2,7 +2,7 @@ import { useEffect, useState, type ReactNode } from 'react'
 import { accuse, devFiles, devRelock, resetProgress, devScenarios, devStatus, type DevScenario, type DevStatus } from '../api/client'
 import { FILES } from '../content/case'
 import type { FileId } from '../content/types'
-import { API_BASE } from '../api/http'
+import { API_BASE, mockApiActive, setMockApi } from '../api/http'
 import { fetchNarration } from '../api/narration'
 import { useApi } from '../store/api'
 import { useNarrator } from '../store/narrator'
@@ -86,8 +86,11 @@ export function TestLab() {
 
       <Section title="Integrations">
         <span className="tl__note">
-          API: {API_BASE || 'same origin (dev mock or proxy)'} · {api.status} · narration {api.features.narration ? 'server voice' : 'browser voice'} · grading AI {api.features.gradingAI ? 'on' : 'off'}
+          API: {mockApiActive() ? 'built-in mock (/mock-api)' : API_BASE || 'same origin (dev mock or proxy)'} · {api.status} · narration {api.features.narration ? 'server voice' : 'browser voice'} · grading AI {api.features.gradingAI ? 'on' : 'off'}
         </span>
+        <button className="btn" onClick={() => setMockApi(!mockApiActive())} title="Dev only. Switches every request to the in-memory mock and reloads the page.">
+          Mock API (no Python): {mockApiActive() ? 'ON, turn off' : 'off, turn on'}
+        </button>
         <button
           className="btn"
           onClick={async () => {
