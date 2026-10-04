@@ -4,7 +4,7 @@ import { resolve } from 'node:path'
 import { defineConfig, loadEnv, type Connect, type Plugin } from 'vite'
 import { handleAccuse } from './dev-api/accuse.ts'
 import { progressRoutes } from './dev-api/progress.ts'
-import { handleNarrate, narrationConfigured, narrationVoice } from './dev-api/narrate.ts'
+import { describeVoices, handleNarrate, narrationConfigured, speakers } from './dev-api/narrate.ts'
 
 // Dev-only stand-in for the FastAPI backend. Implements the contract in docs/api.md
 // using the gitignored server/private/case-private.json, so answers never enter the client bundle.
@@ -132,12 +132,17 @@ function mockApi(env: Record<string, string>, alsoAtApi: boolean): Plugin {
             gemini: !!key && !key.startsWith('insert_'),
             model: env.GEMINI_MODEL || 'gemini-3.5-flash-lite',
             elevenLabs: narrationConfigured(env),
-            voice: narrationVoice(env),
+            voices: speakers(env),
           }),
         )
       })
 
       // Dev only: canned reports for the Test Lab. They hold the solution, so they never ship in the client bundle.
+      use('/api/dev/voices', async (_req, res) => {
+        res.setHeader('Content-Type', 'application/json')
+        res.end(JSON.stringify({ voices: await describeVoices(env) }))
+      })
+
       use('/api/dev/scenarios', (_req, res) => {
         res.setHeader('Content-Type', 'application/json')
         try {

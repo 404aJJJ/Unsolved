@@ -1,0 +1,13 @@
+{
+  "_comment": "ElevenLabs voice IDs for every character who speaks (not secret, but they must be available to the ElevenLabs account the API key belongs to). Speaker keys: suspects use their Case Board ids; supervisor and friend are the other people in the chat logs. Assigned in the order the voices were supplied; use the Test Lab 'Voices' panel (dev) or `python -m server.narrate` to hear and check each one, then edit this file.",
+  "speakers": {
+    "mw": { "name": "Margaret Wood", "voice": "0lp4RIz96WD1RUtvEu3Q" },
+    "nb": { "name": "Noah Brown", "voice": "tfsEebr1nWcNraaptkk3" },
+    "aw": { "name": "Arthur Wilson", "voice": "lcMyyd2HUfFzxdCaC4Ta" },
+    "bm": { "name": "Bryant Moreland", "voice": "WMKg7TxPpPWCryaXE42r" },
+    "ow": { "name": "Olivia Walker", "voice": "ytcsltLTtCHxNn1vC76H" },
+    "lj": { "name": "Lily Johnson", "voice": "ib8aaABAPZQpTo6hx8Jr" },
+    "supervisor": { "name": "Supervisor", "voice": "2ajXGJNYBR0iNHpS4VZb" },
+    "friend": { "name": "Friend", "voice": "hpp4J3VqNfWAUOO0d1Us" }
+  }
+}

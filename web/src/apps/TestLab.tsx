@@ -1,9 +1,8 @@
 import { useEffect, useState, type ReactNode } from 'react'
-import { accuse, devFiles, devRelock, resetProgress, devScenarios, devStatus, type DevScenario, type DevStatus } from '../api/client'
+import { accuse, devFiles, devRelock, devVoices, resetProgress, type DevVoice, devScenarios, devStatus, type DevScenario, type DevStatus } from '../api/client'
 import { FILES } from '../content/case'
 import type { FileId } from '../content/types'
 import { API_BASE, mockApiActive, setMockApi } from '../api/http'
-import { fetchNarration } from '../api/narration'
 import { useApi } from '../store/api'
 import { useNarrator } from '../store/narrator'
 import { useGame } from '../store/game'
@@ -41,7 +40,12 @@ export function TestLab() {
   const [status, setStatus] = useState<DevStatus | null | undefined>(undefined)
   const api = useApi()
   const [scenarios, setScenarios] = useState<Scenario[]>([])
+  const [voices, setVoices] = useState<DevVoice[]>([])
   const [out, setOut] = useState('Nothing run yet.')
+  const playSample = (v: DevVoice) => {
+    const line = `Hello detective. I am ${v.character}. If you can hear this, my voice works.`
+    void useNarrator.getState().speak(`lab-${v.speaker}`, [{ speaker: v.speaker, name: v.character, text: line }])
+  }
 
   useEffect(() => {
     devStatus().then(setStatus)
@@ -107,20 +111,40 @@ export function TestLab() {
         >
           Refresh /api/config
         </button>
+      </Section>
+
+      <Section title="Character voices (ElevenLabs)">
         <button
           className="btn"
           onClick={async () => {
-            setOut('POST /api/narrate …')
-            const r = await fetchNarration('This is the case narrator. If you can hear this, the voice integration works.')
-            setOut(r.ok ? 'POST /api/narrate -> audio received (playing).' : `POST /api/narrate failed: ${r.error}`)
-            if (r.ok) new Audio(r.url).play().catch(() => setOut('Audio received but the browser blocked playback.'))
+            setOut('Asking ElevenLabs about each voice…')
+            const rows = await devVoices()
+            if (!rows) return setOut('Could not reach /api/dev/voices (is the dev server or UNSOLVED_DEV=1 API running?).')
+            setVoices(rows)
+            setOut(`Checked ${rows.length} voices. Names, gender and accent come from ElevenLabs; fix server/voices.json if a voice does not suit its character.`)
           }}
         >
-          Test server voice
+          Check voices
         </button>
-        <button className="btn" onClick={() => useNarrator.getState().speak('lab', 'This is the browser voice fallback.')}>
-          Test browser voice
-        </button>
+        {voices.length > 0 && (
+          <table className="tl__table">
+            <tbody>
+              {voices.map((v) => (
+                <tr key={v.speaker}>
+                  <td>
+                    <strong>{v.character}</strong>
+                    <span>
+                      {v.error ? v.error : [v.name, v.gender, v.accent, v.age, v.description].filter(Boolean).join(' · ') || v.voice}
+                    </span>
+                  </td>
+                  <td>
+                    <button className="btn" disabled={!!v.error} onClick={() => playSample(v)}>Play sample</button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
       </Section>
 
       <Section title="Progress">

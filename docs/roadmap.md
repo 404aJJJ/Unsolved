@@ -51,7 +51,7 @@ Stack by lane: **React + Vite + TypeScript** for all frontend work (shell, apps,
 
 ### 5. Polish and demo
 - [ ] Clip-and-drag into Notes, Case Board pinning
-- [~] ElevenLabs narration: frontend ready (narrator, buttons, `/api/config` + `/api/narrate` contract, dev mock, browser-voice fallback); backend endpoint and voiced statements pending
+- [x] ElevenLabs character voices: one voice per character (chat messages, interview statements, character emails), `/api/narrate` in Python and the dev mock, Test Lab voice check, browser-voice fallback. Needs the ElevenLabs key on the server and the voice IDs available to that account.
 - [ ] Sounds, animations, window polish
 - [ ] Completion screen with the epilogue
 - [ ] Playtest by someone who did not write the clues; fix anything unfindable

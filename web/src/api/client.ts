@@ -70,7 +70,7 @@ export interface DevStatus {
   gemini: boolean
   model: string
   elevenLabs: boolean
-  voice: string
+  voices?: Record<string, { name: string; voice: string }> // character -> ElevenLabs voice
 }
 
 export async function devStatus(): Promise<DevStatus | null> {
@@ -87,4 +87,22 @@ export interface DevScenario {
 export async function devScenarios(): Promise<DevScenario[] | null> {
   const res = await apiRequest<{ scenarios: DevScenario[] }>('/api/dev/scenarios')
   return res.ok ? res.data.scenarios : null
+}
+
+export interface DevVoice {
+  speaker: string
+  character: string
+  voice: string
+  name?: string
+  gender?: string
+  accent?: string
+  age?: string
+  description?: string
+  error?: string
+}
+
+// Dev only: what ElevenLabs reports for each character's voice, to check who sounds like whom.
+export async function devVoices(): Promise<DevVoice[] | null> {
+  const res = await apiRequest<{ voices: DevVoice[] }>('/api/dev/voices', { timeoutMs: 30_000 })
+  return res.ok ? res.data.voices : null
 }

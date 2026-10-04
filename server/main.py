@@ -300,12 +300,15 @@ async def accuse(body: AccuseRequest, request: Request):
 # ---------- narration (ElevenLabs) ----------
 
 class NarrateRequest(BaseModel):
+    speaker: str = Field(default="", max_length=32)
     text: str = Field(default="", max_length=narrate_logic.MAX_CHARS * 4)
 
 
 @app.post("/api/narrate")
 async def narrate(body: NarrateRequest, request: Request):
-    status, audio, error = await narrate_logic.narrate(body.text, client_key(request), getattr(app.state, "http_transport", None))
+    status, audio, error = await narrate_logic.narrate(
+        body.speaker, body.text, client_key(request), getattr(app.state, "http_transport", None)
+    )
     if audio is not None:
         return Response(content=audio, media_type="audio/mpeg")
     return JSONResponse(status_code=status, content={"error": error})
@@ -325,8 +328,13 @@ if DEV:
             "gemini": configured("GEMINI_API_KEY"),
             "model": os.environ.get("GEMINI_MODEL") or "gemini-3.5-flash-lite",
             "elevenLabs": narrate_logic.configured(),
-            "voice": narrate_logic.voice_id(),
+            "voices": narrate_logic.speakers(),
         }
+
+    @app.get("/api/dev/voices")
+    async def dev_voices():
+        # What ElevenLabs says about each configured voice (name, gender, accent), to check who sounds like whom.
+        return {"voices": await narrate_logic.describe_voices(getattr(app.state, "http_transport", None))}
 
     @app.get("/api/dev/files")
     def dev_files(request: Request):

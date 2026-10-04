@@ -241,11 +241,25 @@ class AccuseTests(Base):
 
 
 class NarrateTests(Base):
+    def say(self, text, speaker="mw"):
+        return self.client.post("/api/narrate", json={"speaker": speaker, "text": text})
+
     def test_not_configured_is_a_503(self):
-        r = self.client.post("/api/narrate", json={"text": "hello"})
+        r = self.say("hello")
         self.assertEqual((r.status_code, r.json()), (503, {"error": "Narration is not configured on this server."}))
 
-    def test_returns_audio_and_caches_it(self):
+    def test_every_character_has_their_own_voice(self):
+        voices = narrate_logic.speakers()
+        self.assertEqual(set(voices), {"mw", "nb", "aw", "bm", "ow", "lj", "supervisor", "friend"})
+        self.assertEqual(len({v["voice"] for v in voices.values()}), 8)
+        for entry in voices.values():
+            self.assertRegex(entry["voice"], r"^[A-Za-z0-9]{20}$")
+
+    def test_unknown_or_missing_speaker_is_refused_before_anything_else(self):
+        for speaker in ("", "narrator", "../etc", "MW"):
+            self.assertEqual(self.say("hello", speaker).status_code, 400, speaker)
+
+    def test_each_speaker_gets_their_own_voice_and_audio_is_cached_per_voice(self):
         calls = []
 
         def handler(request):
@@ -253,30 +267,53 @@ class NarrateTests(Base):
             return httpx.Response(200, content=b"\x01\x02\x03")
 
         self.mock_http(handler)
-        with patch.dict("os.environ", {"ELEVEN_LABS_API_KEY": "k", "ELEVEN_LABS_VOICE_ID": "v1"}):
-            first = self.client.post("/api/narrate", json={"text": "Hello   detective."})
-            second = self.client.post("/api/narrate", json={"text": "Hello detective."})
+        voices = narrate_logic.speakers()
+        with patch.dict("os.environ", {"ELEVEN_LABS_API_KEY": "k"}):
+            first = self.say("Hello   detective.", "mw")
+            again = self.say("Hello detective.", "mw")
+            other = self.say("Hello detective.", "nb")
         self.assertEqual((first.status_code, first.headers["content-type"], first.content), (200, "audio/mpeg", b"\x01\x02\x03"))
-        self.assertEqual(second.content, b"\x01\x02\x03")
-        self.assertEqual(len(calls), 1)
+        self.assertEqual(again.content, b"\x01\x02\x03")
+        self.assertEqual(len(calls), 2)  # mw cached on the repeat; nb is a different voice, so a new request
+        self.assertIn(f"/v1/text-to-speech/{voices['mw']['voice']}", str(calls[0].url))
+        self.assertIn(f"/v1/text-to-speech/{voices['nb']['voice']}", str(calls[1].url))
         self.assertEqual(calls[0].headers["xi-api-key"], "k")
-        self.assertIn("/v1/text-to-speech/v1", str(calls[0].url))
         self.assertEqual(json.loads(calls[0].content), {"text": "Hello detective.", "model_id": "eleven_multilingual_v2"})
+
+    def test_voice_can_be_overridden_per_speaker_by_env(self):
+        seen = []
+        self.mock_http(lambda request: seen.append(str(request.url)) or httpx.Response(200, content=b"a"))
+        with patch.dict("os.environ", {"ELEVEN_LABS_API_KEY": "k", "ELEVEN_LABS_VOICE_MW": "OVERRIDEVOICEID0000000"}):
+            self.say("hi", "mw")
+        self.assertIn("OVERRIDEVOICEID0000000", seen[0])
 
     def test_validation_and_upstream_errors(self):
         with patch.dict("os.environ", {"ELEVEN_LABS_API_KEY": "k"}):
-            self.assertEqual(self.client.post("/api/narrate", json={"text": "  "}).status_code, 400)
-            self.assertEqual(self.client.post("/api/narrate", json={"text": "x" * 2501}).status_code, 413)
+            self.assertEqual(self.say("  ").status_code, 400)
+            self.assertEqual(self.say("x" * 2501).status_code, 413)
             self.mock_http(lambda request: httpx.Response(500, text="boom"))
-            self.assertEqual(self.client.post("/api/narrate", json={"text": "fails"}).status_code, 502)
+            self.assertEqual(self.say("fails").status_code, 502)
             self.mock_http(lambda request: (_ for _ in ()).throw(httpx.ConnectError("down")))
-            self.assertEqual(self.client.post("/api/narrate", json={"text": "also fails"}).status_code, 502)
+            self.assertEqual(self.say("also fails").status_code, 502)
 
     def test_rate_limited(self):
         self.mock_http(lambda request: httpx.Response(200, content=b"a"))
         with patch.dict("os.environ", {"ELEVEN_LABS_API_KEY": "k"}):
-            codes = [self.client.post("/api/narrate", json={"text": f"line {i}"}).status_code for i in range(22)]
+            codes = [self.say(f"line {i}").status_code for i in range(45)]
+        self.assertEqual(codes[39], 200)
         self.assertEqual(codes[-1], 429)
+
+    def test_dev_voice_check_reports_name_gender_and_accent(self):
+        async def run():
+            self.mock_http(lambda request: httpx.Response(200, json={"name": "Test Voice", "category": "shared", "labels": {"gender": "female", "accent": "british"}}))
+            with patch.dict("os.environ", {"ELEVEN_LABS_API_KEY": "k"}):
+                return await narrate_logic.describe_voices(app.state.http_transport)
+
+        import asyncio
+
+        rows = asyncio.run(run())
+        self.assertEqual(len(rows), 8)
+        self.assertEqual((rows[0]["name"], rows[0]["gender"], rows[0]["accent"]), ("Test Voice", "female", "british"))
 
 
 if __name__ == "__main__":

@@ -1,38 +1,56 @@
-import type { Block, ChatMessage, Email, FileDoc } from './types'
+import type { ChatMessage, Email, FileDoc } from './types'
 
-// Plain-text scripts for the narrator, built from the same content the player can already read.
-// Add a builder here for any new content type, then drop a <NarrateButton> next to it.
+// Only characters are voiced: chat messages, interview statements, and emails written by one of them. Case documents,
+// reports and logs are never read aloud. Each piece of speech is a segment with a speaker; the server maps the speaker to
+// that character's ElevenLabs voice (server/voices.json).
+
+export interface Segment {
+  speaker: string // key into server/voices.json
+  name: string // shown while the line is playing
+  text: string
+}
+
+const SPEAKER_NAMES: Record<string, string> = {
+  mw: 'Margaret Wood',
+  nb: 'Noah Brown',
+  aw: 'Arthur Wilson',
+  bm: 'Bryant Moreland',
+  ow: 'Olivia Walker',
+  lj: 'Lily Johnson',
+  supervisor: 'Supervisor',
+  friend: 'Friend',
+}
+
+// Chat logs use first names ("Lily"), statements and emails use full names. Unknown people are not voiced.
+export function speakerFor(name: string): string | null {
+  const n = name.trim().toLowerCase()
+  const first = n.split(/\s+/)[0]
+  for (const [id, full] of Object.entries(SPEAKER_NAMES)) {
+    const f = full.toLowerCase()
+    if (n === f || first === f.split(/\s+/)[0]) return id
+  }
+  return null
+}
 
 const sentence = (t: string) => (/[.!?…]$/.test(t.trim()) ? t.trim() : `${t.trim()}.`)
 
-export function emailScript(e: Email): string {
-  return [`Email from ${e.from} to ${e.to}, sent ${e.sent}.`, `Subject: ${e.subject}.`, ...e.body.map(sentence)].join(' ')
+function segment(name: string, text: string): Segment | null {
+  const speaker = speakerFor(name)
+  return speaker && text.trim() ? { speaker, name: SPEAKER_NAMES[speaker], text: text.trim() } : null
 }
 
-export function chatScript(title: string, msgs: ChatMessage[]): string {
-  return [`${title}.`, ...msgs.map((m) => `${m.from}${m.time ? `, ${m.time}` : ''}: ${sentence(m.text)}`)].join(' ')
+// One segment per message, so the thread can highlight the line being spoken (index matches the message index).
+export function chatSegments(msgs: ChatMessage[]): Segment[] {
+  return msgs.map((m) => segment(m.from, m.text) ?? { speaker: '', name: m.from, text: '' })
 }
 
-function blockScript(b: Block): string {
-  switch (b.t) {
-    case 'h':
-      return sentence(b.text)
-    case 'p':
-    case 'note':
-      return sentence(b.text)
-    case 'rows':
-      return b.rows.map((r) => `${r.k}: ${sentence(r.v)}`).join(' ')
-    case 'statement':
-      return [`Statement of ${b.who}${b.role ? `, ${b.role}` : ''}.`, ...b.lines.map(sentence)].join(' ')
-    case 'chat':
-      return chatScript(b.title, b.msgs)
-    case 'email':
-      return emailScript(b.email)
-    case 'specimen':
-      return sentence(b.caption)
-  }
+// An email is read in its sender's voice, but only when the sender is one of the characters.
+export function emailSegments(e: Email): Segment[] {
+  const s = segment(e.from, e.body.map(sentence).join(' '))
+  return s ? [s] : []
 }
 
-export function docScript(doc: FileDoc): string {
-  return [`${doc.heading}.`, ...doc.sub.map(sentence), ...doc.blocks.map(blockScript)].join(' ')
+// Interview statements, each in its speaker's voice. Anything else in a document (headings, notes) is skipped.
+export function interviewSegments(doc: FileDoc): Segment[] {
+  return doc.blocks.flatMap((b) => (b.t === 'statement' ? [segment(b.who, b.lines.map(sentence).join(' '))] : [])).filter((s): s is Segment => !!s)
 }

@@ -1,11 +1,11 @@
 import { useEffect, useState } from 'react'
 import { getNotes, saveNotes } from '../api/client'
 import { NarrateButton } from '../components/NarrateButton'
-import { useAutoNarrate } from '../components/useAutoNarrate'
 import { EmailView, MessageThread } from '../components/content'
 import { EMAILS, FILES, MESSAGE_THREADS, SUSPECTS, SUSPECT_PHOTOS } from '../content/case'
 import { CASE_IMAGES } from '../content/caseImages'
-import { chatScript, docScript, emailScript } from '../content/narration'
+import { chatSegments, emailSegments, interviewSegments } from '../content/narration'
+import { useNarrator } from '../store/narrator'
 import type { FileId } from '../content/types'
 import { useGame } from '../store/game'
 import { getDoc } from './files'
@@ -14,7 +14,6 @@ export function DocWindow({ fileId, preview: wantPreview = false }: { fileId: Fi
   const preview = import.meta.env.DEV && wantPreview // dev-server only: a preview ignores the lock
   useGame((s) => s.unlocked[fileId]) // re-render once an unlock lands
   const doc = getDoc(fileId)
-  useAutoNarrate(`doc-${fileId}`, doc ? docScript(doc) : '')
   if (!doc && !preview) return <div className="empty">This record is restricted.</div>
   const image = CASE_IMAGES[fileId]
   const entry = FILES.find((f) => f.id === fileId)!
@@ -23,7 +22,8 @@ export function DocWindow({ fileId, preview: wantPreview = false }: { fileId: Fi
       <div className="viewer__bar">
         <span className="file__id file__id--sm">{entry.number}</span>
         <strong>{image.title}</strong>
-        {doc && <NarrateButton id={`doc-${fileId}`} text={docScript(doc)} />}
+        {/* Only documents made of character statements (the interviews) can be listened to; reports and logs cannot. */}
+        {doc && <NarrateButton id={`doc-${fileId}`} segments={interviewSegments(doc)} />}
         <span className="viewer__muted">Evidence {entry.number} of {String(FILES.length).padStart(2, '0')} · {preview ? 'test preview' : 'read-only'}</span>
       </div>
       <div className="viewer__scroll">
@@ -40,7 +40,6 @@ export function MailApp() {
   const deleted = EMAILS.filter((e) => e.id === 'e3')
   const emails = folder === 'inbox' ? inbox : folder === 'deleted' ? deleted : []
   const email = emails.find((e) => e.id === sel) ?? emails[0]
-  useAutoNarrate(email ? `mail-${email.id}` : 'mail', email ? emailScript(email) : '')
   return (
     <div className="mail">
       <nav className="mail__folders">
@@ -66,7 +65,7 @@ export function MailApp() {
         {email && (
           <>
             <div className="mail__tools">
-              <NarrateButton id={`mail-${email.id}`} text={emailScript(email)} />
+              <NarrateButton id={`mail-${email.id}`} segments={emailSegments(email)} />
             </div>
             <EmailView email={email} />
           </>
@@ -79,7 +78,7 @@ export function MailApp() {
 export function MessagesApp() {
   const [sel, setSel] = useState(MESSAGE_THREADS[0].id)
   const thread = MESSAGE_THREADS.find((t) => t.id === sel)!
-  useAutoNarrate(`chat-${thread.id}`, chatScript(thread.title, thread.msgs))
+  const speaking = useNarrator((n) => (n.playingId === `chat-${thread.id}` && n.status === 'playing' ? n.index : -1))
   return (
     <div className="im">
       <ul className="im__contacts">
@@ -97,10 +96,10 @@ export function MessagesApp() {
       <div className="im__chat">
         <div className="im__chathead">
           {thread.title}
-          <NarrateButton id={`chat-${thread.id}`} text={chatScript(thread.title, thread.msgs)} />
+          <NarrateButton id={`chat-${thread.id}`} segments={chatSegments(thread.msgs)} />
         </div>
         <div className="im__scroll" key={thread.id}>
-          <MessageThread msgs={thread.msgs} />
+          <MessageThread msgs={thread.msgs} speakingIndex={speaking} />
         </div>
         <div className="im__compose">
           <input className="field" disabled placeholder="Read-only evidence log" />

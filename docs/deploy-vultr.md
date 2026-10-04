@@ -69,7 +69,7 @@ Put Caddy or nginx in front for HTTPS. The API serves `web/dist` itself.
 | Variable | Default | Purpose |
 |---|---|---|
 | `GEMINI_API_KEY`, `GEMINI_MODEL` | - / `gemini-3.5-flash-lite` | Theory grading |
-| `ELEVEN_LABS_API_KEY`, `ELEVEN_LABS_VOICE_ID`, `ELEVEN_LABS_MODEL` | - / `JBFqnCBsd6RMkjVDRZzb` / `eleven_multilingual_v2` | Narration |
+| `ELEVEN_LABS_API_KEY`, `ELEVEN_LABS_MODEL` | - / `eleven_multilingual_v2` | Character voices (the voice IDs are in `server/voices.json`) |
 | `UNSOLVED_CASE_PATH` | `server/private/case-private.json` | Case data (`/secrets/case-private.json` in Docker) |
 | `UNSOLVED_DB_PATH` | `server/private/game.sqlite3` | Player data (`/data/game.sqlite3` in Docker) |
 | `UNSOLVED_STATIC_DIR` | `web/dist` | Built website to serve |

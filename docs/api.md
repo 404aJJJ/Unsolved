@@ -20,18 +20,21 @@ Response `200`
 - Add new flags here as integrations land (hints, interrogation, ...); the client ignores unknown ones.
 
 ## `POST /api/narrate`
-Text to speech through ElevenLabs. Used by the Listen buttons on evidence documents, emails, chats and the verdict (nothing plays automatically).
+Character speech through ElevenLabs, **one voice per character**. Only characters are voiced: chat messages, interview statements and emails written by a character. Case documents, logs, reports and the verdict are never narrated. Nothing plays automatically; the player presses **Listen**.
 
 Request
 ```json
-{ "text": "plain text to read aloud, max 2500 characters" }
+{ "speaker": "mw", "text": "what that character says, max 2500 characters" }
 ```
+- `speaker` is one of `mw`, `nb`, `aw`, `bm`, `ow`, `lj` (the six suspects, as on the Case Board), `supervisor` or `friend` (the other people in the chat logs). The server maps it to that character's ElevenLabs voice in `server/voices.json`. Anything else is `400 Unknown speaker`.
+- The site sends one request per line of dialogue (a chat message, or one person's interview statement) and prefetches the next while the current one plays, so a conversation flows without gaps.
+
 Response `200`: `audio/mpeg` (binary body, not JSON).
 
-Errors (JSON `{ "error": "..." }`): `400` empty text, `413` text over 2500 characters, `429` more than 20 requests a minute per client, `502` ElevenLabs failed, `503` narration not configured.
-- The client splits long documents into chunks of at most 2500 characters on sentence boundaries and plays them in order, so the backend never sees more than one chunk per request.
-- The client falls back to the browser voice on any error, so the backend should fail fast with a clear status and never block the game.
-- The voice, model and key live only on the server (`ELEVEN_LABS_API_KEY`, optional `ELEVEN_LABS_VOICE_ID`, `ELEVEN_LABS_MODEL`). Cache audio server-side by hash of (voice, model, text); the client also caches in memory per session.
+Errors (JSON `{ "error": "..." }`): `400` unknown speaker or empty text, `413` text over 2500 characters, `429` more than 40 requests a minute per client, `502` ElevenLabs failed (including a voice not available to the account), `503` narration not configured.
+- The client falls back to the browser voice (pitch varied per character) for the rest of that reading on any error, so the backend should fail fast with a clear status and never block the game.
+- The key and model live only on the server (`ELEVEN_LABS_API_KEY`, optional `ELEVEN_LABS_MODEL`); voices are in `server/voices.json`, and `ELEVEN_LABS_VOICE_<SPEAKER>` (for example `ELEVEN_LABS_VOICE_MW`) overrides one. Cache audio server-side by hash of (voice, model, text); the client also caches in memory per session.
+- Every voice ID must be available to the ElevenLabs account the key belongs to (added under *My Voices* if it comes from the Voice Library). Dev check: the Test Lab's "Character voices" panel, or `python -m server.narrate`, prints what ElevenLabs reports for each voice (name, gender, accent).
 - Only text the player can already read is ever sent, so narration cannot reveal anything locked.
 
 ## `POST /api/unlock`
@@ -84,7 +87,7 @@ Gemini grading (server only)
 - Results are cached per theory text. Any failure (no key, timeout, bad JSON, HTTP error) falls back to `source: "offline"` and the rest of the report is still graded.
 - The solution and rubric live in the gitignored `server/private/case-private.json` under `solution`.
 
-Dev only, enabled with `UNSOLVED_DEV=1` (never on the public server; the Test Lab that uses them is excluded from production builds): `GET /api/dev/files` returns every record, `GET /api/dev/scenarios` returns canned reports from `devScenarios` in the private file, `GET /api/dev/status` reports whether the secrets are configured. The Test Lab (dev server only) has buttons that exercise `/api/config` and `/api/narrate`.
+Dev only, enabled with `UNSOLVED_DEV=1` (never on the public server; the Test Lab that uses them is excluded from production builds): `GET /api/dev/files` returns every record, `GET /api/dev/scenarios` returns canned reports from `devScenarios` in the private file, `GET /api/dev/status` reports whether the secrets are configured, and `GET /api/dev/voices` asks ElevenLabs about each character voice. The Test Lab (dev server only) has buttons that exercise `/api/config` and `/api/narrate`.
 
 ## Image endpoints
 

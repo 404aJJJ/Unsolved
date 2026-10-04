@@ -2259,3 +2259,9 @@ button {
     font-size: 11px;
   }
 }
+
+/* ---------- Character voices ---------- */
+.bubble--speaking {
+  box-shadow: 0 0 0 2px #3c9bd6, 0 4px 12px rgba(60, 155, 214, 0.35);
+  transition: box-shadow 0.2s ease;
+}
