@@ -6,6 +6,7 @@ import { formatElapsed } from './caseTime'
 import { Elapsed } from './CaseTimer'
 import { useNow } from './useNow'
 import { AppIcon, MagnifierGlyph } from './Icons'
+import { resetProgress } from '../api/client'
 
 const START_ITEMS: { app: AppId; label: string; desc: string }[] = [
   { app: 'files', label: 'Case Files', desc: 'Evidence 01–05' },
@@ -90,7 +91,15 @@ export function Taskbar({ onLogOff }: { onLogOff: () => void }) {
                     body: 'Unlocked records, notes and your case time will be cleared. This cannot be undone.',
                     confirmLabel: 'Restart case',
                     danger: true,
-                    onConfirm: reset,
+                    onConfirm: async () => {
+                      try {
+                        await resetProgress()
+                        reset()
+                        useWindows.getState().closeAll()
+                      } catch {
+                        useWindows.getState().pushToast({ title: 'Case was not restarted', body: 'Check that the Python server is running, then try again.' })
+                      }
+                    },
                   })
                 }}
               >

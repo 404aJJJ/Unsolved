@@ -2,13 +2,18 @@ import { useState } from 'react'
 import { CASE } from '../content/case'
 import { MagnifierGlyph } from './Icons'
 
-export function LoginScreen({ onLogin }: { onLogin: () => void }) {
+export function LoginScreen({ onLogin }: { onLogin: () => Promise<boolean> }) {
   const [welcome, setWelcome] = useState(false)
   const [leaving, setLeaving] = useState(false)
   const start = () => {
     setWelcome(true)
     setTimeout(() => setLeaving(true), 1100)
-    setTimeout(onLogin, 1500)
+    setTimeout(async () => {
+      if (!(await onLogin())) {
+        setWelcome(false)
+        setLeaving(false)
+      }
+    }, 1500)
   }
   return (
     <div className={`login ${leaving ? 'login--out' : ''}`}>

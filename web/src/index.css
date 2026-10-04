@@ -1443,24 +1443,35 @@ button {
 .notes {
   display: flex;
   flex-direction: column;
+  background: #fff;
 }
 .notes__bar {
-  padding: 5px 10px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 12px;
   color: var(--muted);
-  border-bottom: 1px solid #e3d48f;
-  background: #fff6c8;
+  border-top: 1px solid #c5d3df;
+  background: #f4f7fa;
+}
+.notes__error {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  color: #8c2727;
+  background: #fff;
 }
 .notes__pad {
   flex: 1;
+  min-height: 0;
   resize: none;
   border: 0;
-  padding: 10px 14px 10px 44px;
-  font: 14px/24px 'Segoe Print', 'Bradley Hand', 'Comic Sans MS', cursive;
+  padding: 14px;
+  font: 14px/1.6 var(--font);
   color: #1f3352;
-  background:
-    linear-gradient(90deg, transparent 34px, #f0a0a0 34px, #f0a0a0 35px, transparent 35px),
-    repeating-linear-gradient(180deg, #fffbe0 0 23px, #b9d0ea 23px 24px);
-  background-attachment: local;
+  background: #fff;
 }
 .notes__pad:focus {
   outline: none;
@@ -1523,10 +1534,10 @@ button {
   width: 100%;
   height: 48px;
   resize: vertical;
-  font: 12.5px/1.4 'Segoe Print', 'Bradley Hand', cursive;
+  font: 13px/1.5 var(--font);
   color: #1f3352;
-  border: 1px dashed #c9b97a;
-  background: #fff8cf;
+  border: 1px solid #c5d3df;
+  background: #fff;
   padding: 4px 6px;
 }
 
