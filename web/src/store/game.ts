@@ -32,6 +32,7 @@ interface GameState {
   reportStarted: boolean
   result: FiledReport | null // the filed report; ends the case
   recordUnlock: (id: FileId, doc: FileDoc) => void
+  syncUnlocked: (unlocked: Partial<Record<FileId, FileDoc>>) => void
   recordMiss: (id: FileId, hints: string[]) => void
   markOpened: (id: FileId) => void
   setNotes: (notes: string) => void
@@ -53,6 +54,10 @@ export const useGame = create<GameState>()(
   persist(
     (set) => ({
       ...initial,
+      syncUnlocked: (unlocked) => set((s) => ({
+        unlocked,
+        unlockedAt: Object.fromEntries(Object.entries(s.unlockedAt).filter(([id]) => unlocked[id as FileId])),
+      })),
       recordUnlock: (id, doc) => set((s) => ({ unlocked: { ...s.unlocked, [id]: doc }, unlockedAt: { ...s.unlockedAt, [id]: s.elapsed } })),
       recordMiss: (id, hints) =>
         set((s) => ({ attempts: { ...s.attempts, [id]: (s.attempts[id] ?? 0) + 1 }, hints: { ...s.hints, [id]: hints } })),

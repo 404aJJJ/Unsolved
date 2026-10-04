@@ -1,6 +1,8 @@
 # API contract (v0)
 
-The frontend talks to this API only. During development the Vite dev server serves a mock of it (`web/vite.config.ts`) backed by the gitignored `server/private/case-private.json`. The FastAPI backend must implement the same shapes; point the client at it with `VITE_API_URL`.
+The frontend talks to this API only. The Python implementation is `server/main.py` (see `server/README.md`). Today it implements health, unlock, progress, notebook and the evidence images; **`/api/config`, `/api/accuse` and `/api/narrate` are still only in the Vite dev mock** (`web/dev-api/`) and must be ported to Python before the site can ship. For frontend-only work `npm run dev` serves everything from the mock (in-memory progress, notes and images); to use the Python server set `API_PROXY_TARGET=http://localhost:8000` (see `docs/integrations.md`).
+
+`GET /api/health` returns `200 { "ok": true }`. Interactive API documentation is available at `/docs` on the Python server. Invalid request bodies return HTTP 422.
 
 Content shapes (`FileDoc`, `Block`, etc.) are defined in `web/src/content/types.ts`.
 
@@ -45,7 +47,7 @@ Responses
 - Unknown file: `404 { "error": "unknown file" }`
 - Server data missing: `503 { "error": "..." }`
 
-Rules: trim whitespace, compare case-insensitively, numeric answers are four-digit strings. Locked file content is only ever returned from a correct unlock.
+Rules: trim whitespace, compare case-insensitively, numeric answers are four-digit strings. A correct unlock saves the internal file ID in `server/private/progress.json`. Saved unlocked content is also returned by GET `/api/progress`.
 
 ## `POST /api/accuse`
 Final report: culprit, up to three cited records, and a written theory. **Filing is final**: every submission is graded and explained, right or wrong. There is no retry loop and no steering; the player is told how it really happened.
@@ -82,5 +84,33 @@ Gemini grading (server only)
 
 Dev only (the real backend must not expose these; the Test Lab that uses them is excluded from production builds): `GET /api/dev/files` returns every record, `GET /api/dev/scenarios` returns canned reports from `devScenarios` in the private file, `GET /api/dev/status` reports whether the secrets are configured. The Test Lab (dev server only) has buttons that exercise `/api/config` and `/api/narrate`.
 
-## Planned
-- Optional: `GET /api/session` if unlocked state moves server-side.
+## Image endpoints
+
+GET `/api/files/01/image` and `/api/files/02/image` return public PNGs.
+GET `/api/files/04/image`, `/api/files/05/image`, and `/api/files/06/image`
+return Security Logs, Diamond Examination Report, and Purchase Records. They
+check saved unlock progress and return HTTP 403 while locked, or HTTP 404 if the
+image is missing. Responses are `image/png`; locked images use `Cache-Control: no-store`.
+
+Temporary testing: `?preview=true` skips the lock without saving progress when
+`UNSOLVED_TEST_PREVIEW` is enabled (default `1` for this local learning server).
+Set it to `0` before publishing.
+
+## Progress endpoints
+
+GET `/api/progress` returns `{ "unlocked": { "05": FileDoc } }`, including only
+saved unlocked records. React reads this on login to reconcile its local cache.
+POST `/api/progress/reset` saves an empty list and returns `{ "ok": true }`.
+Read/write failures return HTTP 503. There is one shared game per server; notes,
+attempts, and elapsed time were initially stored in the browser. The notebook
+now uses SQLite as described below; attempts and elapsed time remain local.
+
+## Notebook endpoints
+
+GET `/api/notes` returns `{ "text": "saved writing" }` or `{ "text": null }` before
+the first save. PUT `/api/notes` accepts `{ "text": "new writing" }` (a string up to
+100,000 characters) and returns `{ "ok": true }`. Empty strings clear the writing.
+Invalid input returns HTTP 422; database failures return HTTP 503. The frontend
+loads when Notes opens and saves with the Save notes button. POST
+`/api/progress/reset` also clears the notebook. SQLite data lives in the ignored
+`server/private/game.sqlite3` file.

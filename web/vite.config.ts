@@ -3,6 +3,7 @@ import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { defineConfig, loadEnv, type Plugin } from 'vite'
 import { handleAccuse } from './dev-api/accuse.ts'
+import { progressRoutes } from './dev-api/progress.ts'
 import { handleNarrate, narrationConfigured, narrationVoice } from './dev-api/narrate.ts'
 
 // Dev-only stand-in for the FastAPI backend. Implements the contract in docs/api.md
@@ -16,6 +17,22 @@ function mockApi(env: Record<string, string>): Plugin {
     name: 'unsolved-mock-api',
     configureServer(server) {
       const readPrivate = () => JSON.parse(readFileSync(privatePath, 'utf8'))
+      const progress = progressRoutes({ readPrivate, assetsDir: resolve(__dirname, '../server/assets'), allowPreview: env.UNSOLVED_TEST_PREVIEW !== '0' })
+      // Order matters: '/api/progress/reset' must be mounted before '/api/progress'.
+      for (const path of ['/api/progress/reset', '/api/progress', '/api/notes', '/api/files']) server.middlewares.use(path, progress.handlers[path])
+      server.middlewares.use('/api/health', (_req, res) => {
+        res.setHeader('Content-Type', 'application/json')
+        res.end(JSON.stringify({ ok: true }))
+      })
+      server.middlewares.use('/api/dev/relock', (req, res) => {
+        let raw = ''
+        req.on('data', (c) => (raw += c))
+        req.on('end', () => {
+          progress.relock(String(JSON.parse(raw || '{}').id ?? ''))
+          res.setHeader('Content-Type', 'application/json')
+          res.end(JSON.stringify({ ok: true }))
+        })
+      })
 
       // What the backend can do. The client hides or degrades features whose flag is false.
       server.middlewares.use('/api/config', (_req, res) => {
@@ -125,6 +142,7 @@ function mockApi(env: Record<string, string>): Plugin {
         res.setHeader('Content-Type', 'application/json')
         try {
           const data = readPrivate()
+          progress.unlockAll() // so the evidence images are served too
           res.end(JSON.stringify({ files: data.files }))
         } catch {
           res.statusCode = 503
@@ -162,6 +180,7 @@ function mockApi(env: Record<string, string>): Plugin {
             return res.end(JSON.stringify({ error: 'unknown file' }))
           }
           if (normalize(answer) === normalize(expected)) {
+            progress.unlock(fileId)
             return res.end(JSON.stringify({ ok: true, file: data.files[fileId] }))
           }
           const ladder: string[] = data.hints[fileId] ?? []

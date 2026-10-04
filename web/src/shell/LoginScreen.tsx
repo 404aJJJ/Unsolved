@@ -5,7 +5,7 @@ import { TIME_LIMIT, useGame, type GameMode } from '../store/game'
 import { formatElapsed, timeLeft } from './caseTime'
 import { MagnifierGlyph } from './Icons'
 
-export function LoginScreen({ onLogin }: { onLogin: () => void }) {
+export function LoginScreen({ onLogin }: { onLogin: (mode: GameMode) => Promise<boolean> }) {
   const [welcome, setWelcome] = useState(false)
   const started = useGame((s) => s.started)
   const savedMode = useGame((s) => s.mode)
@@ -15,10 +15,14 @@ export function LoginScreen({ onLogin }: { onLogin: () => void }) {
   const left = timeLeft({ mode: savedMode, elapsed })
   const [leaving, setLeaving] = useState(false)
   const start = () => {
-    if (!started) useGame.getState().startGame(choice)
     setWelcome(true)
     setTimeout(() => setLeaving(true), 1100)
-    setTimeout(onLogin, 1500)
+    setTimeout(async () => {
+      if (!(await onLogin(choice))) {
+        setWelcome(false)
+        setLeaving(false)
+      }
+    }, 1500)
   }
   return (
     <div className={`login ${leaving ? 'login--out' : ''}`}>

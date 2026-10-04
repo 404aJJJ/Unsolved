@@ -39,3 +39,8 @@ npm-debug.log*
 private/
 docs/private/
 server/private/
+
+# Python backend
+.venv/
+__pycache__/
+*.py[cod]

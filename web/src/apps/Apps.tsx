@@ -1,4 +1,5 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
+import { getNotes, saveNotes } from '../api/client'
 import { NarrateButton } from '../components/NarrateButton'
 import { useAutoNarrate } from '../components/useAutoNarrate'
 import { EmailView, MessageThread } from '../components/content'
@@ -25,7 +26,7 @@ export function DocWindow({ fileId, preview = false }: { fileId: FileId; preview
         <span className="viewer__muted">Evidence {entry.number} of {String(FILES.length).padStart(2, '0')} · {preview ? 'test preview' : 'read-only'}</span>
       </div>
       <div className="viewer__scroll">
-        <img className={`viewer__scan${image.trimRightEdge ? ' viewer__scan--paper' : ''}`} src={image.src} alt={`${image.title} — Case PB-062 evidence document`} draggable={false} />
+        <img className={`viewer__scan${image.trimRightEdge ? ' viewer__scan--paper' : ''}`} src={preview ? `${image.src}?preview=true` : image.src} alt={`${image.title} — Case PB-062 evidence document`} draggable={false} />
       </div>
     </div>
   )
@@ -111,16 +112,60 @@ export function MessagesApp() {
 export function NotesApp() {
   const notes = useGame((s) => s.notes)
   const setNotes = useGame((s) => s.setNotes)
+  const [loading, setLoading] = useState(true)
+  const [saving, setSaving] = useState(false)
+  const [savedText, setSavedText] = useState<string | null>(null)
+  const [error, setError] = useState('')
+  const [reload, setReload] = useState(0)
+
+  useEffect(() => {
+    let active = true
+    getNotes().then((text) => {
+      if (!active) return
+      // On the first save, keep any notebook text already in browser storage.
+      if (text !== null) setNotes(text)
+      setSavedText(text)
+      setLoading(false)
+    }).catch(() => {
+      if (!active) return
+      setLoading(false)
+      setError('Could not load your notebook. Your local text is kept. Check the Python server and retry.')
+    })
+    return () => { active = false }
+  }, [reload, setNotes])
+
+  const save = async () => {
+    setSaving(true)
+    setError('')
+    try {
+      await saveNotes(notes)
+      setSavedText(notes)
+    } catch {
+      setError('Could not save. Your text is still here; check the Python server and try again.')
+    } finally {
+      setSaving(false)
+    }
+  }
+
   return (
     <div className="notes">
-      <div className="notes__bar">Notebook · saved automatically</div>
       <textarea
         className="notes__pad"
         value={notes}
         onChange={(e) => setNotes(e.target.value)}
         placeholder="Write down times, contradictions and references as you find them…"
         aria-label="Notebook"
+        disabled={loading || saving}
+        maxLength={100000}
       />
+      {error && <div className="notes__error" role="alert">
+        <span>{error}</span>
+        <button className="btn" onClick={() => { setLoading(true); setError(''); setReload((n) => n + 1) }}>Retry loading</button>
+      </div>}
+      <div className="notes__bar">
+        <span role="status">{loading ? 'Loading…' : saving ? 'Saving…' : savedText === notes ? 'Saved' : 'Unsaved changes'}</span>
+        <button className="btn btn--primary" onClick={save} disabled={loading || saving || savedText === notes}>Save notes</button>
+      </div>
     </div>
   )
 }

@@ -1,5 +1,4 @@
 import { useEffect, useState } from 'react'
-import { useGame } from '../store/game'
 import { activeWindowId, useWindows, type AppId } from '../store/windows'
 import { secondsLeft, useTimer } from '../store/timer'
 import { formatElapsed, useClockLabel } from './caseTime'
@@ -8,6 +7,7 @@ import { useNarrator } from '../store/narrator'
 import { useNow } from './useNow'
 import { AppIcon, MagnifierGlyph } from './Icons'
 import { IS_TEST } from '../testMode'
+import { restartCase } from '../apps/restartCase'
 
 const START_ITEMS: { app: AppId; label: string; desc: string }[] = [
   { app: 'files', label: 'Case Files', desc: 'Evidence 01–05' },
@@ -68,7 +68,6 @@ function CountdownChip() {
 export function Taskbar({ onLogOff }: { onLogOff: () => void }) {
   const { windows, open, focus, requestMin, toasts, dismissToast, askConfirm } = useWindows()
   const activeId = activeWindowId(windows)
-  const reset = useGame((s) => s.reset)
   const [startOpen, setStartOpen] = useState(false)
   const now = useClock()
   const clockLabel = useClockLabel()
@@ -116,10 +115,7 @@ export function Taskbar({ onLogOff }: { onLogOff: () => void }) {
                     body: 'Unlocked records, notes and your case time will be cleared and you will return to the log-on screen. This cannot be undone.',
                     confirmLabel: 'Restart case',
                     danger: true,
-                    onConfirm: () => {
-                      reset()
-                      onLogOff()
-                    },
+                    onConfirm: () => void restartCase(),
                   })
                 }}
               >

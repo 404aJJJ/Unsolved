@@ -1,5 +1,5 @@
 import { useEffect, useState, type ReactNode } from 'react'
-import { accuse, devFiles, devScenarios, devStatus, type DevScenario, type DevStatus } from '../api/client'
+import { accuse, devFiles, devRelock, resetProgress, devScenarios, devStatus, type DevScenario, type DevStatus } from '../api/client'
 import { FILES } from '../content/case'
 import type { FileId } from '../content/types'
 import { API_BASE } from '../api/http'
@@ -116,10 +116,10 @@ export function TestLab() {
 
       <Section title="Progress">
         <button className="btn" onClick={unlockAll}>Unlock all records</button>
-        <button className="btn" onClick={() => askConfirm({ title: 'Reset the whole case?', body: 'Clears records, notes, report and case time, then starts an untimed game.', confirmLabel: 'Reset', danger: true, onConfirm: () => { reset(); useGame.getState().startGame('untimed'); setOut('Case reset (untimed).') } })}>
+        <button className="btn" onClick={() => askConfirm({ title: 'Reset the whole case?', body: 'Clears records, notes, report and case time, then starts an untimed game.', confirmLabel: 'Reset', danger: true, onConfirm: async () => { await resetProgress().catch(() => {}); reset(); useGame.getState().startGame('untimed'); setOut('Case reset (untimed).') } })}>
           Reset (untimed)
         </button>
-        <button className="btn" onClick={() => askConfirm({ title: 'Reset the whole case?', body: 'Clears everything and starts a fresh 30:00 timed game.', confirmLabel: 'Reset', danger: true, onConfirm: () => { reset(); useGame.getState().startGame('timed'); setOut('Case reset (timed 30:00).') } })}>
+        <button className="btn" onClick={() => askConfirm({ title: 'Reset the whole case?', body: 'Clears everything and starts a fresh 30:00 timed game.', confirmLabel: 'Reset', danger: true, onConfirm: async () => { await resetProgress().catch(() => {}); reset(); useGame.getState().startGame('timed'); setOut('Case reset (timed 30:00).') } })}>
           Reset (timed 30:00)
         </button>
         <button className="btn" onClick={() => { const g = useGame.getState(); if (g.mode !== 'timed') return setOut('Start a timed game first.'); useGame.setState({ deadline: Date.now() + 5000 }); setOut('Deadline set to 5 seconds from now.') }}>
@@ -136,7 +136,8 @@ export function TestLab() {
           <button
             key={f.id}
             className="btn"
-            onClick={() => {
+            onClick={async () => {
+              await devRelock(f.id)
               relock(f.id)
               showLock(f.id)
             }}

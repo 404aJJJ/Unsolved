@@ -7,7 +7,7 @@ export const API_BASE: string = (import.meta.env.VITE_API_URL ?? '').replace(/\/
 export type ApiResult<T> = { ok: true; data: T } | { ok: false; status: number; error: string }
 
 interface RequestOptions {
-  method?: 'GET' | 'POST'
+  method?: 'GET' | 'POST' | 'PUT'
   body?: unknown
   timeoutMs?: number
   as?: 'json' | 'blob'
@@ -23,6 +23,7 @@ export async function apiRequest<T>(path: string, opts: RequestOptions = {}): Pr
   try {
     const res = await fetch(apiUrl(path), {
       method,
+      cache: method === 'GET' ? 'no-store' : undefined,
       headers: body === undefined ? undefined : { 'Content-Type': 'application/json' },
       body: body === undefined ? undefined : JSON.stringify(body),
       signal: signal ? AbortSignal.any([signal, AbortSignal.timeout(timeoutMs)]) : AbortSignal.timeout(timeoutMs),
