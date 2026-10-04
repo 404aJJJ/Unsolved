@@ -26,21 +26,34 @@ as file 04. Security uses `04`; Purchase Records uses `06`.
 
 ## Connect React
 
-Put this in the repo-root `.env` (next to `.env.example`):
+Fastest way: two terminals from the repo root.
 
-```env
-API_PROXY_TARGET=http://localhost:8000
+```sh
+bash server/run-dev.sh          # Python API on http://127.0.0.1:8000
+cd web && npm run dev:api       # the site, with every /api request forwarded to Python
 ```
 
-Restart `npm run dev` from `web/`. Vite now forwards every `/api/*` request to Python, so the site and API share an
-origin (no CORS, and the per-player cookie just works) and the built-in mock is switched off. Keep both servers running.
-`VITE_API_URL=http://localhost:8000` also works for local development, but a separate API origin only suits `localhost`;
-for anything deployed keep one origin (see `docs/deploy-vultr.md`).
+`npm run dev:api` makes Vite forward `/api/*` to `http://127.0.0.1:8000`, so the site and API share an origin (no CORS, and the per-player cookie just works) and the built-in mock is switched off. Plain `npm run dev` still uses the mock and needs no Python.
 
-To use the Test Lab against Python, start it with `UNSOLVED_DEV=1` (never on a public server). The `?preview=true`
-image bypass needs `UNSOLVED_TEST_PREVIEW=1` and is off by default.
+To forward somewhere else, put `API_PROXY_TARGET=http://host:port` in the repo-root `.env` and restart `npm run dev`. `VITE_API_URL` (a separate API origin) is only for special cases; the dev server reads `.env` files from the **repo root**, not `web/` (an old `web/.env.local` is ignored).
+
+`run-dev.sh` starts Python with `UNSOLVED_DEV=1` so the Test Lab works against it (never set that on a public server). The `?preview=true` image bypass needs `UNSOLVED_TEST_PREVIEW=1` and is off by default.
 
 Keys: the server reads `GEMINI_API_KEY` and `ELEVEN_LABS_API_KEY` from the repo-root `.env` (real environment variables win).
+
+## Troubleshooting
+| What you see | Cause and fix |
+|---|---|
+| Boot screen says `[FAILED] Connecting to the investigation server` | Python isn't running (or not on port 8000). Start `bash server/run-dev.sh`, then press Enter on the boot screen. Check http://127.0.0.1:8000/api/health. |
+| Log-on says "Cannot load your progress" | The API answered with an error: usually the case file is missing. Check `server/private/case-private.json` exists. |
+| Locks, report or Notes fail with 503 | Same: `server/private/case-private.json` missing or invalid JSON. |
+| `ModuleNotFoundError: server` | Start uvicorn from the **repo root** (`python -m uvicorn server.main:app`), not from `server/`. |
+| `ModuleNotFoundError: fastapi` | The venv isn't being used or deps aren't installed: `server/.venv/bin/python -m pip install -r server/requirements.txt`. |
+| Site works but the Python API is never hit | You ran `npm run dev` (mock). Use `npm run dev:api`. A changed `.env` needs a Vite restart. |
+| Port 8000 or 5173 already in use | Stop the other process (`lsof -i :8000`). If you moved the API, set `API_PROXY_TARGET` in `.env`. |
+| Progress seems shared or lost between runs | Each browser has its own game via a cookie; clearing cookies starts a new one. Data lives in `server/private/game.sqlite3` (delete it to reset everything). |
+| Test Lab buttons say dev routes missing | The API wasn't started with `UNSOLVED_DEV=1` (use `run-dev.sh`). |
+| Report grading says "AI grading is switched off" | No real `GEMINI_API_KEY` in the repo-root `.env`; restart Python after adding it. |
 
 ## What each endpoint does
 `/api/health`, `/api/config` (feature flags), `/api/unlock`, `/api/progress` (+ `/reset`), `/api/notes`,

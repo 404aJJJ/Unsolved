@@ -195,7 +195,8 @@ function mockApi(env: Record<string, string>): Plugin {
 export default defineConfig(({ mode }) => {
   // .env lives at the repo root, next to .env.example. Empty prefix: server code may read non-VITE_ keys.
   const env = loadEnv(mode, resolve(__dirname, '..'), '')
-  const proxyTarget = env.API_PROXY_TARGET
+  // `npm run dev:api` (vite --mode api) proxies /api to the local Python server with no .env editing; API_PROXY_TARGET overrides it.
+  const proxyTarget = env.API_PROXY_TARGET || (mode === 'api' ? 'http://127.0.0.1:8000' : '')
   return {
     // Lets the root .env supply VITE_* values to the client (only VITE_-prefixed keys are ever exposed).
     envDir: resolve(__dirname, '..'),
