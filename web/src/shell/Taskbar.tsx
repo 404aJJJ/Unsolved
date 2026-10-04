@@ -4,7 +4,6 @@ import { secondsLeft, useTimer } from '../store/timer'
 import { formatElapsed, useClockLabel } from './caseTime'
 import { Elapsed } from './CaseTimer'
 import { useNarrator } from '../store/narrator'
-import { useNow } from './useNow'
 import { AppIcon, MagnifierGlyph } from './Icons'
 import { IS_TEST } from '../testMode'
 import { restartCase } from '../apps/restartCase'
@@ -49,7 +48,7 @@ function VoiceChip() {
 
 function CountdownChip() {
   const t = useTimer()
-  const now = useNow(250)
+  const now = useTimer((s) => s.now)
   const open = useWindows((s) => s.open)
   if (t.status === 'idle') return null
   return (
@@ -57,7 +56,7 @@ function CountdownChip() {
       <svg width="12" height="12" viewBox="0 0 12 12" aria-hidden>
         <path d="M3 1h6M3 11h6M3.5 1c0 3 5 3 5 5s-5 2-5 5" fill="none" stroke="currentColor" strokeWidth="1.2" />
       </svg>
-      {formatElapsed(secondsLeft(t, now.getTime()))}
+      {formatElapsed(secondsLeft(t, now))}
     </button>
   )
 }

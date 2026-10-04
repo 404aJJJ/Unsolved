@@ -8,6 +8,7 @@ interface TimerState {
   duration: number // seconds
   endsAt: number // epoch ms, while running
   remaining: number // seconds, while paused
+  now: number // epoch ms, advanced by one shared 250ms clock so every view of the countdown shows the same second
   start: (seconds: number) => void
   pause: () => void
   resume: () => void
@@ -20,7 +21,8 @@ export const useTimer = create<TimerState>((set, get) => ({
   duration: 300,
   endsAt: 0,
   remaining: 0,
-  start: (seconds) => set({ status: 'running', duration: seconds, endsAt: Date.now() + seconds * 1000, remaining: seconds }),
+  now: Date.now(),
+  start: (seconds) => set({ status: 'running', duration: seconds, endsAt: Date.now() + seconds * 1000, remaining: seconds, now: Date.now() }),
   pause: () => {
     const s = get()
     if (s.status !== 'running') return
@@ -28,7 +30,7 @@ export const useTimer = create<TimerState>((set, get) => ({
   },
   resume: () => {
     const s = get()
-    if (s.status === 'paused') set({ status: 'running', endsAt: Date.now() + s.remaining * 1000 })
+    if (s.status === 'paused') set({ status: 'running', endsAt: Date.now() + s.remaining * 1000, now: Date.now() })
   },
   reset: () => set({ status: 'idle', remaining: 0 }),
   finish: () => set({ status: 'done', remaining: 0 }),

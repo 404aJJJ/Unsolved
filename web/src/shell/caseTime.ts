@@ -22,15 +22,24 @@ export function timeLeft(s: { mode: string; elapsed: number }) {
   return s.mode === 'timed' ? Math.max(0, TIME_LIMIT - s.elapsed) : null
 }
 
-// Advances the case clock once a second. Timed games follow the wall clock (the tab being hidden does not pause them);
-// untimed games only count while the tab is visible.
+// Time left from the deadline at a given moment (login screen, taskbar). Null when untimed or not started.
+export function liveTimeLeft(s: { mode: string; deadline: number | null; elapsed: number }, nowMs: number) {
+  if (s.mode !== 'timed') return null
+  return s.deadline ? Math.max(0, Math.ceil((s.deadline - nowMs) / 1000)) : Math.max(0, TIME_LIMIT - s.elapsed)
+}
+
+// Advances the case clock. Timed games recompute from the deadline four times a second (so the countdown never skips or
+// drifts, and the tab being hidden does not pause it); untimed games add a second at a time and only while the tab is visible.
 export function useCaseTimer() {
   const tick = useGame((s) => s.tick)
   useEffect(() => {
     tick()
+    let n = 0
     const id = setInterval(() => {
-      if (useGame.getState().mode === 'timed' || document.visibilityState === 'visible') tick()
-    }, 1000)
+      n++
+      if (useGame.getState().mode === 'timed') tick()
+      else if (n % 4 === 0 && document.visibilityState === 'visible') tick()
+    }, 250)
     return () => clearInterval(id)
   }, [tick])
 }
@@ -80,6 +89,7 @@ export function useCountdownWatcher() {
   useEffect(() => {
     const id = setInterval(() => {
       const t = useTimer.getState()
+      if (t.status === 'running') useTimer.setState({ now: Date.now() })
       if (t.status === 'running' && Date.now() >= t.endsAt) {
         t.finish()
         useWindows.getState().pushToast({ title: "Timer finished", body: `${formatElapsed(t.duration)} countdown is up.` })

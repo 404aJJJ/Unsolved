@@ -141,8 +141,7 @@ const PRESETS = [60, 300, 600, 900]
 
 function TimerPanel() {
   const t = useTimer()
-  const now = useNow(200)
-  const left = secondsLeft(t, now.getTime())
+  const left = secondsLeft(t, t.now)
   const running = t.status === 'running'
   const pct = t.status === 'idle' ? 0 : Math.min(100, ((t.duration - left) / t.duration) * 100)
 

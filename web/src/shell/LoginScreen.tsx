@@ -1,7 +1,8 @@
 import { useState } from 'react'
 import { CASE } from '../content/case'
 import { TIME_LIMIT, useGame, type GameMode } from '../store/game'
-import { formatElapsed, timeLeft } from './caseTime'
+import { formatElapsed, liveTimeLeft } from './caseTime'
+import { useNow } from './useNow'
 import { MagnifierGlyph } from './Icons'
 
 export function LoginScreen({ onLogin }: { onLogin: (mode: GameMode) => Promise<boolean> }) {
@@ -11,7 +12,9 @@ export function LoginScreen({ onLogin }: { onLogin: (mode: GameMode) => Promise<
   const elapsed = useGame((s) => s.elapsed)
   const finished = useGame((s) => !!s.result)
   const [choice, setChoice] = useState<GameMode>('timed')
-  const left = timeLeft({ mode: savedMode, elapsed })
+  const deadline = useGame((s) => s.deadline)
+  const now = useNow(1000)
+  const left = liveTimeLeft({ mode: savedMode, deadline, elapsed }, now.getTime())
   const [leaving, setLeaving] = useState(false)
   const start = () => {
     setWelcome(true)
