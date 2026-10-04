@@ -11,7 +11,7 @@ The frontend only ever talks to `/api/*` (contract in [api.md](api.md)). Three w
 `VITE_*` values are public and end up in the browser bundle. API keys (`ELEVEN_LABS_API_KEY`, `GEMINI_API_KEY`) are never prefixed with `VITE_`; only the server reads them.
 
 ## What the backend must implement
-Everything in [api.md](api.md): `GET /api/config`, `POST /api/unlock`, `POST /api/accuse`, `POST /api/narrate`. The `/api/dev/*` routes are mock-only and must not exist in production. Port the logic from `web/dev-api/accuse.ts` and `web/dev-api/narrate.ts`; they are the reference behaviour (limits, caching, fallbacks, prompt-injection guard).
+Everything in [api.md](api.md): `GET /api/config`, `POST /api/unlock`, `POST /api/accuse`, `POST /api/narrate`. The `/api/dev/*` routes are mock-only and must not exist in production. The Python server (`server/accuse.py`, `server/narrate.py`) already implements them as ports of `web/dev-api/accuse.ts` and `web/dev-api/narrate.ts`. Change behaviour in both places, or retire the mock.
 
 ## How the frontend is wired
 - `web/src/api/http.ts`: the one fetch helper (base URL, timeout, `{ error }` handling). New endpoints go through `apiRequest`.
@@ -27,9 +27,12 @@ Everything in [api.md](api.md): `GET /api/config`, `POST /api/unlock`, `POST /ap
 4. Keep keys and any answer-bearing data server-side. Never put them in `VITE_*` values or the client code.
 5. Add a mock in `web/dev-api/` and a button in the Test Lab so the whole team can try it.
 
-## Checklist for the Python lane
-- [ ] FastAPI app on `PORT` (see `.env.example`), CORS for the site origin, `.env` loaded
-- [ ] `GET /api/config`, `POST /api/unlock`, `POST /api/accuse`, `POST /api/narrate`
-- [ ] Unlock state and locked file contents only after a correct unlock
-- [ ] Gemini and ElevenLabs keys from the environment, graceful behaviour when missing
-- [ ] Test it with `API_PROXY_TARGET` and the Test Lab (status lights, "Test server voice", scenario probes)
+## Production
+See [deploy-vultr.md](deploy-vultr.md).
+
+## Checklist for the Python lane (done in `server/`; kept as a review list)
+- [x] FastAPI app on `PORT` (see `.env.example`), CORS for the site origin, `.env` loaded
+- [x] `GET /api/config`, `POST /api/unlock`, `POST /api/accuse`, `POST /api/narrate`
+- [x] Unlock state and locked file contents only after a correct unlock
+- [x] Gemini and ElevenLabs keys from the environment, graceful behaviour when missing
+- [x] Test it with `API_PROXY_TARGET` and the Test Lab (status lights, "Test server voice", scenario probes)

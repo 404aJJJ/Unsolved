@@ -26,16 +26,27 @@ as file 04. Security uses `04`; Purchase Records uses `06`.
 
 ## Connect React
 
-Add this line to `web/.env.local`:
+Put this in the repo-root `.env` (next to `.env.example`):
 
 ```env
-VITE_API_URL=http://localhost:8000
+API_PROXY_TARGET=http://localhost:8000
 ```
 
-Restart the Vite server with `npm run dev` from `web/`. Keep both servers running.
-Double-click a locked file to use Python. The test-bypass button requests an image
-preview without changing unlock progress. Keep Python running: the old Vite mock
-only supports password checks, not the new image and progress endpoints.
+Restart `npm run dev` from `web/`. Vite now forwards every `/api/*` request to Python, so the site and API share an
+origin (no CORS, and the per-player cookie just works) and the built-in mock is switched off. Keep both servers running.
+`VITE_API_URL=http://localhost:8000` also works for local development, but a separate API origin only suits `localhost`;
+for anything deployed keep one origin (see `docs/deploy-vultr.md`).
+
+To use the Test Lab against Python, start it with `UNSOLVED_DEV=1` (never on a public server). The `?preview=true`
+image bypass needs `UNSOLVED_TEST_PREVIEW=1` and is off by default.
+
+Keys: the server reads `GEMINI_API_KEY` and `ELEVEN_LABS_API_KEY` from the repo-root `.env` (real environment variables win).
+
+## What each endpoint does
+`/api/health`, `/api/config` (feature flags), `/api/unlock`, `/api/progress` (+ `/reset`), `/api/notes`,
+`/api/files/{id}/image`, `/api/accuse` (final report, Gemini grading in `server/accuse.py`) and `/api/narrate`
+(ElevenLabs, `server/narrate.py`). Each browser gets a random `uid` cookie and its own progress and notebook.
+The full contract is `docs/api.md`.
 
 ## Follow one request through the code
 

@@ -1,5 +1,6 @@
 import { create } from 'zustand'
 import type { FileId } from '../content/types'
+import { useNarrator } from './narrator'
 
 export type AppId = 'files' | 'mail' | 'messages' | 'notes' | 'board' | 'report' | 'clock' | 'testlab' | 'doc'
 
@@ -78,6 +79,19 @@ export function activeWindowId(windows: Win[]): string | null {
   return best?.id ?? null
 }
 
+// Narration ids are prefixed by what they read: doc-<file>, mail-<id>, chat-<id>, verdict.
+function stopNarrationFor(win: Win) {
+  const narrator = useNarrator.getState()
+  const playing = narrator.playingId
+  if (!playing) return
+  const owns =
+    (win.app === 'doc' && playing === `doc-${win.fileId}`) ||
+    (win.app === 'mail' && playing.startsWith('mail-')) ||
+    (win.app === 'messages' && playing.startsWith('chat-')) ||
+    (win.app === 'report' && playing === 'verdict')
+  if (owns) narrator.stop()
+}
+
 let cascade = 0
 let toastSeq = 0
 
@@ -122,7 +136,12 @@ export const useWindows = create<WindowState>((set, get) => ({
       if (win.z === s.topZ) return s
       return { topZ: s.topZ + 1, windows: patch(s.windows, id, { z: s.topZ + 1 }) }
     }),
-  requestClose: (id) => set((s) => ({ windows: patch(s.windows, id, { anim: 'close' }) })),
+  requestClose: (id) => {
+    // Stop narration the moment the window is closed, not when its close animation finishes.
+    const win = get().windows.find((w) => w.id === id)
+    if (win) stopNarrationFor(win)
+    set((s) => ({ windows: patch(s.windows, id, { anim: 'close' }) }))
+  },
   requestMin: (id) => set((s) => ({ windows: patch(s.windows, id, { anim: 'min' }) })),
   finishAnim: (id) =>
     set((s) => {
@@ -145,5 +164,8 @@ export const useWindows = create<WindowState>((set, get) => ({
     setTimeout(() => get().dismissToast(id), 5000)
   },
   dismissToast: (id) => set((s) => ({ toasts: s.toasts.filter((t) => t.id !== id) })),
-  closeAll: () => set({ windows: [], lockFor: null, toasts: [], confirm: null }),
+  closeAll: () => {
+    useNarrator.getState().stop()
+    set({ windows: [], lockFor: null, toasts: [], confirm: null })
+  },
 }))

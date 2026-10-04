@@ -34,13 +34,13 @@ Stack by lane: **React + Vite + TypeScript** for all frontend work (shell, apps,
 - [ ] Suspect profile cards (age, role, background) for Case Board
 
 ### 3. Backend (Python lane)
-- [ ] FastAPI skeleton, CORS, run locally
-- [ ] `GET /case` public data (suspects, files 01-03, lock prompts, hints)
-- [ ] `POST /unlock {fileId, answer}`: server compares (trim, case-insensitive, 4-digit numeric strings); on success returns the file content
-- [ ] Locked contents never served before unlock; unlocked state kept per session
+- [x] FastAPI skeleton, CORS, run locally
+- [x] Public case data lives in the client; locked files only via `/api/unlock`
+- [x] `POST /unlock {fileId, answer}`: server compares (trim, case-insensitive, 4-digit numeric strings); on success returns the file content
+- [x] Locked contents never served before unlock; unlocked state kept per player (cookie + SQLite)
 - [x] `POST /accuse`: culprit, evidence claims, free-text theory; returns verdict, per-claim feedback, reasoning-chain explanation (dev implementation in `web/dev-api/accuse.ts`, Python port pending)
 - [x] Gemini grading with structured JSON, prompt-injection guard, static fallback, cached verdicts (dev implementation; needs a real key to test live)
-- [ ] Deploy to Vultr; register the domain at GoDaddy and point it at the deploy
+- [~] Deploy to Vultr: Docker image, compose, Caddy and `deploy/setup-vultr.sh` ready (see docs/deploy-vultr.md); the server itself and the GoDaddy A record still need creating
 
 ### 4. Locks and minigames (build in this order)
 - [x] Generic lock flow (`web/src/minigames/useUnlock.ts` + `LockDialog`): server validation, progressive hints, no lockout, plain-text fallback

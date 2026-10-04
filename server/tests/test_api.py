@@ -23,10 +23,10 @@ class ApiTests(unittest.TestCase):
         self.patcher = patch("server.main.CASE_PATH", self.path)
         self.patcher.start()
         self.addCleanup(self.patcher.stop)
-        self.progress_path = Path(self.temp.name) / "progress.json"
-        progress_patcher = patch("server.main.PROGRESS_PATH", self.progress_path)
-        progress_patcher.start()
-        self.addCleanup(progress_patcher.stop)
+        # Keys from a developer's real .env must never leak into tests (no live Gemini or ElevenLabs calls).
+        env_patcher = patch.dict("os.environ", {"GEMINI_API_KEY": "", "ELEVEN_LABS_API_KEY": ""})
+        env_patcher.start()
+        self.addCleanup(env_patcher.stop)
         database_patcher = patch("server.main.DATABASE_PATH", Path(self.temp.name) / "game.sqlite3")
         database_patcher.start()
         self.addCleanup(database_patcher.stop)
@@ -96,8 +96,8 @@ class ApiTests(unittest.TestCase):
 
     def test_saved_progress_is_read_by_a_new_client(self):
         self.client.post("/api/unlock", json={"fileId": "05", "answer": "TEST"})
-        self.assertEqual(json.loads(self.progress_path.read_text()), {"unlocked_files": ["05"]})
-        with TestClient(app) as fresh_client:
+        # The same browser (same uid cookie) returning later sees its progress.
+        with TestClient(app, cookies=self.client.cookies) as fresh_client:
             self.assertEqual(fresh_client.get("/api/progress").json(), {"unlocked": {"05": self.doc}})
             self.assertEqual(fresh_client.get("/api/files/05/image").status_code, 200)
 
@@ -107,6 +107,9 @@ class ApiTests(unittest.TestCase):
         self.assertEqual(self.client.get("/api/progress").json(), {"unlocked": {}})
         self.assertEqual(self.client.get("/api/files/05/image").status_code, 403)
 
+    def test_preview_is_off_by_default(self):
+        self.assertEqual(self.client.get("/api/files/05/image?preview=true").status_code, 403)
+
     def test_preview_does_not_change_progress_and_can_be_disabled(self):
         with patch("server.main.ALLOW_TEST_PREVIEW", True):
             self.assertEqual(self.client.get("/api/files/05/image?preview=true").status_code, 200)
@@ -115,10 +118,10 @@ class ApiTests(unittest.TestCase):
         with patch("server.main.ALLOW_TEST_PREVIEW", False):
             self.assertEqual(self.client.get("/api/files/05/image?preview=true").status_code, 403)
 
-    def test_corrupt_progress_does_not_grant_access(self):
-        self.progress_path.write_text("not JSON")
-        self.assertEqual(self.client.get("/api/progress").status_code, 503)
-        self.assertEqual(self.client.get("/api/files/05/image").status_code, 503)
+    def test_unreadable_progress_does_not_grant_access(self):
+        with patch("server.main.open_database", side_effect=OSError):
+            self.assertEqual(self.client.get("/api/progress").status_code, 503)
+            self.assertEqual(self.client.get("/api/files/05/image").status_code, 503)
 
     def test_locked_image_missing_after_unlock(self):
         self.client.post("/api/unlock", json={"fileId": "05", "answer": "TEST"})
@@ -131,7 +134,7 @@ class ApiTests(unittest.TestCase):
     def test_notebook_saves_and_loads_from_a_new_client(self):
         text = "Margaret's story\nCompare the times. 💎"
         self.assertEqual(self.client.put("/api/notes", json={"text": text}).json(), {"ok": True})
-        with TestClient(app) as new_client:
+        with TestClient(app, cookies=self.client.cookies) as new_client:
             self.assertEqual(new_client.get("/api/notes").json(), {"text": text})
 
     def test_notebook_replaces_text_and_can_be_cleared(self):

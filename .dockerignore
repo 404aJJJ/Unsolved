@@ -1,0 +1,13 @@
+.git
+.claude
+.env
+.env.*
+**/node_modules
+web/dist
+server/.venv
+server/private
+server/tests
+**/__pycache__
+docs/private
+suspectProfiles
+*.log

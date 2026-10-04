@@ -24,6 +24,8 @@ export async function apiRequest<T>(path: string, opts: RequestOptions = {}): Pr
     const res = await fetch(apiUrl(path), {
       method,
       cache: method === 'GET' ? 'no-store' : undefined,
+      // The player's game is keyed by a cookie. Same-origin sends it automatically; a separate API origin needs this.
+      credentials: API_BASE ? 'include' : 'same-origin',
       headers: body === undefined ? undefined : { 'Content-Type': 'application/json' },
       body: body === undefined ? undefined : JSON.stringify(body),
       signal: signal ? AbortSignal.any([signal, AbortSignal.timeout(timeoutMs)]) : AbortSignal.timeout(timeoutMs),

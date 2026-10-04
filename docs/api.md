@@ -1,6 +1,8 @@
 # API contract (v0)
 
-The frontend talks to this API only. The Python implementation is `server/main.py` (see `server/README.md`). Today it implements health, unlock, progress, notebook and the evidence images; **`/api/config`, `/api/accuse` and `/api/narrate` are still only in the Vite dev mock** (`web/dev-api/`) and must be ported to Python before the site can ship. For frontend-only work `npm run dev` serves everything from the mock (in-memory progress, notes and images); to use the Python server set `API_PROXY_TARGET=http://localhost:8000` (see `docs/integrations.md`).
+The frontend talks to this API only. The reference implementation is the Python server `server/main.py` (see `server/README.md` and `docs/deploy-vultr.md`); it implements every endpoint below. For frontend-only work `npm run dev` serves the same endpoints from a mock in `web/dev-api/` (in-memory game, no Python needed). To develop against the Python server set `API_PROXY_TARGET=http://localhost:8000` (see `docs/integrations.md`).
+
+**Players and sessions.** The server gives each browser a random `uid` cookie (HttpOnly, SameSite=Lax, Secure over https) and keeps that player's unlocked files and notebook separately. The site and API must share an origin (the Docker deploy and the Vite proxy both do), so images and cookies just work.
 
 `GET /api/health` returns `200 { "ok": true }`. Interactive API documentation is available at `/docs` on the Python server. Invalid request bodies return HTTP 422.
 
@@ -47,7 +49,7 @@ Responses
 - Unknown file: `404 { "error": "unknown file" }`
 - Server data missing: `503 { "error": "..." }`
 
-Rules: trim whitespace, compare case-insensitively, numeric answers are four-digit strings. A correct unlock saves the internal file ID in `server/private/progress.json`. Saved unlocked content is also returned by GET `/api/progress`.
+Rules: trim whitespace, compare case-insensitively, numeric answers are four-digit strings. A correct unlock saves the internal file ID in the player's rows in `server/private/game.sqlite3`. Saved unlocked content is also returned by GET `/api/progress`.
 
 ## `POST /api/accuse`
 Final report: culprit, up to three cited records, and a written theory. **Filing is final**: every submission is graded and explained, right or wrong. There is no retry loop and no steering; the player is told how it really happened.
@@ -82,7 +84,7 @@ Gemini grading (server only)
 - Results are cached per theory text. Any failure (no key, timeout, bad JSON, HTTP error) falls back to `source: "offline"` and the rest of the report is still graded.
 - The solution and rubric live in the gitignored `server/private/case-private.json` under `solution`.
 
-Dev only (the real backend must not expose these; the Test Lab that uses them is excluded from production builds): `GET /api/dev/files` returns every record, `GET /api/dev/scenarios` returns canned reports from `devScenarios` in the private file, `GET /api/dev/status` reports whether the secrets are configured. The Test Lab (dev server only) has buttons that exercise `/api/config` and `/api/narrate`.
+Dev only, enabled with `UNSOLVED_DEV=1` (never on the public server; the Test Lab that uses them is excluded from production builds): `GET /api/dev/files` returns every record, `GET /api/dev/scenarios` returns canned reports from `devScenarios` in the private file, `GET /api/dev/status` reports whether the secrets are configured. The Test Lab (dev server only) has buttons that exercise `/api/config` and `/api/narrate`.
 
 ## Image endpoints
 
@@ -92,17 +94,15 @@ return Security Logs, Diamond Examination Report, and Purchase Records. They
 check saved unlock progress and return HTTP 403 while locked, or HTTP 404 if the
 image is missing. Responses are `image/png`; locked images use `Cache-Control: no-store`.
 
-Temporary testing: `?preview=true` skips the lock without saving progress when
-`UNSOLVED_TEST_PREVIEW` is enabled (default `1` for this local learning server).
-Set it to `0` before publishing.
+Developer testing: `?preview=true` skips the lock without saving progress, but only when
+`UNSOLVED_TEST_PREVIEW=1`. It is **off by default** and must stay off in production.
 
 ## Progress endpoints
 
 GET `/api/progress` returns `{ "unlocked": { "05": FileDoc } }`, including only
 saved unlocked records. React reads this on login to reconcile its local cache.
 POST `/api/progress/reset` saves an empty list and returns `{ "ok": true }`.
-Read/write failures return HTTP 503. There is one shared game per server; notes,
-attempts, and elapsed time were initially stored in the browser. The notebook
+Read/write failures return HTTP 503. Progress is per player (see sessions above); attempts and elapsed time are stored in the browser. The notebook
 now uses SQLite as described below; attempts and elapsed time remain local.
 
 ## Notebook endpoints
