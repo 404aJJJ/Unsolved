@@ -20,7 +20,7 @@ Response `200`
 - Add new flags here as integrations land (hints, interrogation, ...); the client ignores unknown ones.
 
 ## `POST /api/narrate`
-Text to speech through ElevenLabs. Used for the case brief, evidence documents, emails, chats and the verdict.
+Text to speech through ElevenLabs. Used by the Listen buttons on evidence documents, emails, chats and the verdict (nothing plays automatically).
 
 Request
 ```json

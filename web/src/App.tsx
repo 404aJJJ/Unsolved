@@ -1,7 +1,7 @@
-import { useEffect, useState } from 'react'
-import { useApi } from './store/api'
+import { useState } from 'react'
 import { useSession } from './store/session'
 import { Desktop } from './shell/Desktop'
+import { BootScreen } from './shell/BootScreen'
 import { LoginScreen } from './shell/LoginScreen'
 import { useWindows } from './store/windows'
 import { getProgress } from './api/client'
@@ -12,12 +12,10 @@ export default function App() {
   const logIn = useSession((s) => s.logIn)
   const logOff = useSession((s) => s.logOff)
   const closeAll = useWindows((s) => s.closeAll)
-  const loadApi = useApi((s) => s.load)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
-  useEffect(() => {
-    void loadApi()
-  }, [loadApi])
+  // The boot screen runs once per page load (it reaches the API and reads its feature flags), then log-on appears.
+  const [booted, setBooted] = useState(false)
 
   // Log-on reconciles with the server's saved progress first, so the browser and server never disagree.
   const login = async (mode: GameMode) => {
@@ -37,6 +35,8 @@ export default function App() {
       setLoading(false)
     }
   }
+
+  if (!booted) return <BootScreen onDone={() => setBooted(true)} />
 
   if (!loggedIn)
     return (

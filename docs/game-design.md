@@ -86,4 +86,4 @@ Before the demo, a teammate who did not write the clues plays from files 01-03. 
 - The mode is chosen on the log-on screen at the start of a game and locked until the case is restarted. Restarting returns to the log-on screen.
 
 ## Narration
-The case brief reads itself once per game right after log-on. Documents, emails and chat threads read themselves when opened. The taskbar Voice chip has mute, volume and an **Auto: on/off** toggle that turns this off (manual Listen buttons keep working).
+Nothing plays on its own. Documents, emails, chat threads and the verdict have a **Listen** button (server voice when available, the browser's voice otherwise). The taskbar Voice chip has mute, volume, stop and an **Auto-read** toggle that is **off** by default for players who want everything read as it opens.

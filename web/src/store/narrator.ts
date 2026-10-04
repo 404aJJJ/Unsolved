@@ -87,7 +87,7 @@ export const useNarrator = create<NarratorState>()(
 
       return {
         muted: false,
-        auto: true,
+        auto: false, // opt-in: nothing plays until the player presses Listen (or turns auto-read on)
         volume: 0.9,
         playingId: null,
         status: 'idle',
@@ -144,6 +144,12 @@ export const useNarrator = create<NarratorState>()(
         },
       }
     },
-    { name: 'unsolved-narrator', partialize: (s) => ({ muted: s.muted, auto: s.auto, volume: s.volume }) },
+    {
+      name: 'unsolved-narrator',
+      partialize: (s) => ({ muted: s.muted, auto: s.auto, volume: s.volume }),
+      // v2: auto-read became opt-in, so anyone who saved the old default (on) gets it switched off.
+      version: 2,
+      migrate: (state, version) => (version < 2 ? { ...(state as object), auto: false } : state) as NarratorState,
+    },
   ),
 )

@@ -1,6 +1,5 @@
 import { useState } from 'react'
 import { CASE } from '../content/case'
-import { NarrateButton } from '../components/NarrateButton'
 import { TIME_LIMIT, useGame, type GameMode } from '../store/game'
 import { formatElapsed, timeLeft } from './caseTime'
 import { MagnifierGlyph } from './Icons'
@@ -64,7 +63,6 @@ export function LoginScreen({ onLogin }: { onLogin: (mode: GameMode) => Promise<
           </div>
         )}
       </div>
-      {!welcome && <NarrateButton id="brief" text={CASE.premise} label="Listen to the case brief" />}
       <p className="login__premise">{CASE.premise}</p>
       <div className="login__brand">
         Unsolved<span>.exe</span>

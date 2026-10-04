@@ -11,6 +11,6 @@ export const NO_FEATURES: ApiFeatures = { narration: false, gradingAI: false }
 export async function fetchConfig(): Promise<{ online: boolean; features: ApiFeatures }> {
   const res = await apiRequest<{ features?: Partial<ApiFeatures> }>('/api/config', { timeoutMs: 5000 })
   // An older backend without /api/config is treated as online with every optional feature off.
-  if (!res.ok) return { online: res.status !== 0, features: NO_FEATURES }
+  if (!res.ok) return { online: res.status !== 0 && res.status < 500, features: NO_FEATURES }
   return { online: true, features: { ...NO_FEATURES, ...res.data.features } }
 }

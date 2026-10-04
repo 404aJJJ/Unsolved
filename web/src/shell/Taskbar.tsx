@@ -38,8 +38,8 @@ function VoiceChip() {
         {muted ? 'Muted' : live ? 'Narrating' : 'Voice'}
       </button>
       <input className="tray__vol" type="range" min={0} max={1} step={0.05} value={muted ? 0 : volume} onChange={(e) => setVolume(Number(e.target.value))} aria-label="Narrator volume" />
-      <button className="linkbtn" style={{ color: 'inherit', textDecoration: 'none' }} onClick={() => setAuto(!auto)} aria-pressed={auto} title="Read the brief, documents, emails and chats aloud when they open">
-        Auto: {auto ? 'on' : 'off'}
+      <button className="linkbtn" style={{ color: 'inherit', textDecoration: 'none' }} onClick={() => setAuto(!auto)} aria-pressed={auto} title="Read documents, emails and chats aloud as they open (off by default)">
+        Auto-read: {auto ? 'on' : 'off'}
       </button>
       {live && (
         <button className="linkbtn" style={{ color: 'inherit' }} onClick={stop}>

@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect } from 'react'
+import { lazy, Suspense } from 'react'
 import { BoardApp, DocWindow, MailApp, MessagesApp, NotesApp } from '../apps/Apps'
 import { ReportApp } from '../apps/ReportApp'
 import { IS_TEST } from '../testMode'
@@ -9,9 +9,6 @@ import { FilesApp } from '../apps/FilesApp'
 import { LockDialog } from '../apps/LockDialog'
 import { useWindows, type AppId, type Win } from '../store/windows'
 import { AppIcon } from './Icons'
-import { CASE } from '../content/case'
-import { useGame } from '../store/game'
-import { useNarrator } from '../store/narrator'
 import { useCaseTimer, useCountdownWatcher, useTimedGame } from './caseTime'
 import { ClockApp } from '../apps/ClockApp'
 import { ConfirmDialog } from './ConfirmDialog'
@@ -61,14 +58,6 @@ export function Desktop({ onLogOff }: { onLogOff: () => void }) {
   useCaseTimer()
   useCountdownWatcher()
   useTimedGame()
-  // The case brief reads itself once per game, right after log-on (the log-on click lets the browser play audio).
-  useEffect(() => {
-    const game = useGame.getState()
-    if (game.briefPlayed || game.result) return
-    game.markBrief()
-    const n = useNarrator.getState()
-    if (n.auto && !n.muted) void n.speak('brief', CASE.premise)
-  }, [])
   return (
     <div className="desktop">
       <div className="wallpaper" aria-hidden />

@@ -24,7 +24,6 @@ interface GameState {
   started: boolean // a game is in progress (mode is locked)
   deadline: number | null // epoch ms; timed mode only. Wall clock, so leaving the tab does not pause it
   timeUp: boolean
-  briefPlayed: boolean // the narrated case brief has played this game
   elapsed: number // seconds spent on the case
   unlockedAt: Partial<Record<FileId, number>> // case time when each file was recovered
   suspectNotes: Record<string, string>
@@ -37,7 +36,6 @@ interface GameState {
   markOpened: (id: FileId) => void
   setNotes: (notes: string) => void
   startGame: (mode: GameMode) => void
-  markBrief: () => void
   tick: () => void
   setSuspectNote: (id: string, note: string) => void
   setDraft: (d: Partial<ReportDraft>) => void
@@ -48,7 +46,7 @@ interface GameState {
   reset: () => void
 }
 
-const initial = { unlocked: {}, attempts: {}, hints: {}, opened: [] as FileId[], notes: '', mode: 'timed' as GameMode, started: false, deadline: null as number | null, timeUp: false, briefPlayed: false, elapsed: 0, unlockedAt: {}, suspectNotes: {}, draft: { culprit: '', evidence: [], theory: '' } as ReportDraft, reportStarted: false, result: null as FiledReport | null }
+const initial = { unlocked: {}, attempts: {}, hints: {}, opened: [] as FileId[], notes: '', mode: 'timed' as GameMode, started: false, deadline: null as number | null, timeUp: false, elapsed: 0, unlockedAt: {}, suspectNotes: {}, draft: { culprit: '', evidence: [], theory: '' } as ReportDraft, reportStarted: false, result: null as FiledReport | null }
 
 export const useGame = create<GameState>()(
   persist(
@@ -65,7 +63,6 @@ export const useGame = create<GameState>()(
       setNotes: (notes) => set({ notes }),
       startGame: (mode) =>
         set({ started: true, mode, deadline: mode === 'timed' ? Date.now() + TIME_LIMIT * 1000 : null, elapsed: 0, timeUp: false }),
-      markBrief: () => set({ briefPlayed: true }),
       // The clock stops once the report is filed. Timed mode follows the wall clock (deadline); untimed counts seconds.
       tick: () =>
         set((s) => {
@@ -101,7 +98,8 @@ export const useGame = create<GameState>()(
         // v3: the report is final (result replaces solved/reportAttempts); drop the old shapes.
         delete fixed.solved
         // v4: timed mode. Older saves keep playing untimed.
-        if (version < 4) Object.assign(fixed, { mode: 'untimed', started: fixed.elapsed > 0, deadline: null, timeUp: false, briefPlayed: true })
+        if (version < 4) Object.assign(fixed, { mode: 'untimed', started: fixed.elapsed > 0, deadline: null, timeUp: false })
+        delete (fixed as { briefPlayed?: boolean }).briefPlayed
         return fixed
       },
       // Belt and braces for any other stale save: never let a bad shape reach the form.
