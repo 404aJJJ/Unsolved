@@ -192,6 +192,8 @@ export function AppIcon({ app, size = 48 }: { app: AppId; size?: number }) {
       return <ReportIcon size={size} />
     case 'clock':
       return <ClockIcon size={size} />
+    case 'testlab':
+      return <TestLabIcon size={size} />
     case 'doc':
       return <DocIcon size={size} />
   }
@@ -326,6 +328,21 @@ export function InfoIcon({ size = 40 }: P) {
       <circle cx="24" cy="24" r="20" fill={`url(#${g}i)`} stroke="#fff" strokeWidth="2" />
       <circle cx="24" cy="15" r="2.6" fill="#fff" />
       <rect x="21.4" y="21" width="5.2" height="14" rx="1.6" fill="#fff" />
+    </svg>
+  )
+}
+
+export function TestLabIcon({ size = 48 }: P) {
+  const g = useId()
+  return (
+    <svg width={size} height={size} viewBox="0 0 48 48">
+      <defs>
+        <Gloss id={`${g}f`} a="#9be3b0" b="#2f9a5a" />
+      </defs>
+      <path d="M19 5h10v3h-2v10l9 18a4 4 0 0 1-3.600 5.800H15.600A4 4 0 0 1 12 36l9-18V8h-2z" fill="#eaf3fa" stroke="#5d7185" strokeWidth="1.5" strokeLinejoin="round" />
+      <path d="M16.500 30h15l4.200 7.600a2.400 2.400 0 0 1-2.200 3.400H14.500a2.400 2.400 0 0 1-2.200-3.400z" fill={`url(#${g}f)`} />
+      <circle cx="21" cy="34" r="1.500" fill="#fff" opacity=".8" />
+      <circle cx="27" cy="36.500" r="1.100" fill="#fff" opacity=".8" />
     </svg>
   )
 }

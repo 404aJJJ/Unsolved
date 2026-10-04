@@ -28,8 +28,8 @@ export function FilesApp() {
         <input className="search" placeholder="Search Evidence" aria-label="Search evidence" />
       </div>
       <div className="explorer__cmd">
-        <button className="cmd" onClick={() => openFile(selected, true)} title="Temporary testing shortcut: preview the selected file without codes or minigames.">
-          Open selected file (test bypass)
+        <button className="cmd" onClick={() => openFile(selected)}>
+          {locked(selected) ? 'Request access' : 'Open'}
         </button>
         <span className="cmd__info">{available} of {FILES.length} records available</span>
       </div>

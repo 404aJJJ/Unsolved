@@ -1,18 +1,59 @@
 import { useState } from 'react'
+import { useSession } from './store/session'
 import { Desktop } from './shell/Desktop'
+import { BootScreen } from './shell/BootScreen'
 import { LoginScreen } from './shell/LoginScreen'
 import { useWindows } from './store/windows'
+import { getProgress } from './api/client'
+import { useGame, type GameMode } from './store/game'
 
 export default function App() {
-  const [loggedIn, setLoggedIn] = useState(false)
+  const loggedIn = useSession((s) => s.loggedIn)
+  const logIn = useSession((s) => s.logIn)
+  const logOff = useSession((s) => s.logOff)
   const closeAll = useWindows((s) => s.closeAll)
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState('')
+  // The boot screen runs once per page load (it reaches the API and reads its feature flags), then log-on appears.
+  const [booted, setBooted] = useState(false)
 
-  if (!loggedIn) return <LoginScreen onLogin={() => setLoggedIn(true)} />
+  // Log-on reconciles with the server's saved progress first, so the browser and server never disagree.
+  const login = async (mode: GameMode) => {
+    if (loading) return false
+    setLoading(true)
+    setError('')
+    try {
+      useGame.getState().syncUnlocked(await getProgress())
+      // The clock starts only once log-on has worked, so a down server never burns the player's 30 minutes.
+      if (!useGame.getState().started) useGame.getState().startGame(mode)
+      logIn()
+      return true
+    } catch {
+      setError('Cannot load your progress. Check that the Python server is running, then try again.')
+      return false
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  if (!booted) return <BootScreen onDone={() => setBooted(true)} />
+
+  if (!loggedIn)
+    return (
+      <>
+        <LoginScreen onLogin={login} />
+        {(loading || error) && (
+          <div role="status" style={{ position: 'fixed', bottom: 30, left: 0, right: 0, textAlign: 'center', color: 'white' }}>
+            {loading ? 'Loading saved progress…' : error}
+          </div>
+        )}
+      </>
+    )
   return (
     <Desktop
       onLogOff={() => {
         closeAll()
-        setLoggedIn(false)
+        logOff()
       }}
     />
   )

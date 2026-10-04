@@ -1,0 +1,36 @@
+# Run from the repository root:  docker compose -f deploy/docker-compose.yml up -d --build
+services:
+  app:
+    build:
+      context: ..
+    restart: unless-stopped
+    env_file: ../.env            # GEMINI_API_KEY, ELEVEN_LABS_API_KEY, ... (not committed)
+    environment:
+      UNSOLVED_DEV: "0"          # Test Lab routes stay off in production
+      UNSOLVED_TEST_PREVIEW: "0" # evidence-image bypass stays off in production
+    volumes:
+      - ../server/private/case-private.json:/secrets/case-private.json:ro
+      - unsolved-data:/data      # players' progress and notebooks (SQLite)
+    expose:
+      - "8000"
+
+  caddy:
+    image: caddy:2
+    restart: unless-stopped
+    depends_on:
+      - app
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      # Your domain (e.g. unsolved.example.com) gets automatic HTTPS. Leave unset to serve plain http on the server's IP.
+      DOMAIN: ${DOMAIN:-:80}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+
+volumes:
+  unsolved-data:
+  caddy-data:
+  caddy-config:

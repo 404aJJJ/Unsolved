@@ -3,7 +3,7 @@ import { FILES } from '../content/case'
 import { useGame } from '../store/game'
 import { secondsLeft, useTimer } from '../store/timer'
 import { AnalogClock } from '../shell/AnalogClock'
-import { formatElapsed } from '../shell/caseTime'
+import { formatElapsed, timeLeft } from '../shell/caseTime'
 import { useNow } from '../shell/useNow'
 
 type Tab = 'clock' | 'world' | 'case' | 'timer'
@@ -96,15 +96,19 @@ function WorldClock() {
 
 function CaseClock() {
   const elapsed = useGame((s) => s.elapsed)
+  const mode = useGame((s) => s.mode)
+  const left = timeLeft({ mode, elapsed })
   const unlockedAt = useGame((s) => s.unlockedAt)
   const unlocked = useGame((s) => s.unlocked)
   const recovered = FILES.filter((f) => !f.lock || unlocked[f.id]).length
   const marks = FILES.filter((f) => f.lock && unlockedAt[f.id] !== undefined)
   return (
     <div className="clockpane clockpane--case">
-      <div className="clockpane__label">Time on case PB-062</div>
-      <div className="bigtime bigtime--mono">{formatElapsed(elapsed).padStart(elapsed >= 3600 ? 7 : 5, '0')}</div>
-      <div className="clockpane__muted">Counts while you work. Pauses when this tab is hidden.</div>
+      <div className="clockpane__label">{left === null ? 'Time on case PB-062' : 'Time left on case PB-062'}</div>
+      <div className={`bigtime bigtime--mono ${left !== null && left <= 300 ? 'clock--urgent' : ''}`}>{formatElapsed(left ?? elapsed)}</div>
+      <div className="clockpane__muted">
+        {left === null ? 'Untimed game. Counts while you work and pauses when this tab is hidden.' : 'Timed game. The clock keeps running even if you leave the tab. Your report is filed automatically at zero.'}
+      </div>
       <div className="stats">
         <div>
           <strong>{recovered}/{FILES.length}</strong>

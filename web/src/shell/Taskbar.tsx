@@ -1,11 +1,13 @@
 import { useEffect, useState } from 'react'
-import { useGame } from '../store/game'
 import { activeWindowId, useWindows, type AppId } from '../store/windows'
 import { secondsLeft, useTimer } from '../store/timer'
-import { formatElapsed } from './caseTime'
+import { formatElapsed, useClockLabel } from './caseTime'
 import { Elapsed } from './CaseTimer'
+import { useNarrator } from '../store/narrator'
 import { useNow } from './useNow'
 import { AppIcon, MagnifierGlyph } from './Icons'
+import { IS_TEST } from '../testMode'
+import { restartCase } from '../apps/restartCase'
 
 const START_ITEMS: { app: AppId; label: string; desc: string }[] = [
   { app: 'files', label: 'Case Files', desc: 'Evidence 01–05' },
@@ -14,6 +16,7 @@ const START_ITEMS: { app: AppId; label: string; desc: string }[] = [
   { app: 'board', label: 'Case Board', desc: 'Suspects and leads' },
   { app: 'notes', label: 'Notes', desc: 'Your notebook' },
   { app: 'report', label: 'Submit Report', desc: 'Name the culprit' },
+  ...(IS_TEST ? [{ app: 'testlab' as AppId, label: 'Test Lab', desc: 'Jump to any state' }] : []),
 ]
 
 function useClock() {
@@ -23,6 +26,28 @@ function useClock() {
     return () => clearInterval(t)
   }, [])
   return now
+}
+
+// Mute and volume for the narrator. Always available so sound can be turned off before anything plays.
+function VoiceChip() {
+  const { muted, auto, volume, status, toggleMute, setAuto, setVolume, stop } = useNarrator()
+  const live = status !== 'idle'
+  return (
+    <div className={`tray__voice ${live ? 'tray__voice--live' : ''}`}>
+      <button className="linkbtn" style={{ color: 'inherit', textDecoration: 'none' }} onClick={toggleMute} aria-pressed={muted} title={muted ? 'Unmute narrator' : 'Mute narrator'}>
+        {muted ? 'Muted' : live ? 'Narrating' : 'Voice'}
+      </button>
+      <input className="tray__vol" type="range" min={0} max={1} step={0.05} value={muted ? 0 : volume} onChange={(e) => setVolume(Number(e.target.value))} aria-label="Narrator volume" />
+      <button className="linkbtn" style={{ color: 'inherit', textDecoration: 'none' }} onClick={() => setAuto(!auto)} aria-pressed={auto} title="Read documents, emails and chats aloud as they open (off by default)">
+        Auto-read: {auto ? 'on' : 'off'}
+      </button>
+      {live && (
+        <button className="linkbtn" style={{ color: 'inherit' }} onClick={stop}>
+          Stop
+        </button>
+      )}
+    </div>
+  )
 }
 
 function CountdownChip() {
@@ -43,9 +68,9 @@ function CountdownChip() {
 export function Taskbar({ onLogOff }: { onLogOff: () => void }) {
   const { windows, open, focus, requestMin, toasts, dismissToast, askConfirm } = useWindows()
   const activeId = activeWindowId(windows)
-  const reset = useGame((s) => s.reset)
   const [startOpen, setStartOpen] = useState(false)
   const now = useClock()
+  const clockLabel = useClockLabel()
 
   return (
     <>
@@ -87,10 +112,10 @@ export function Taskbar({ onLogOff }: { onLogOff: () => void }) {
                   setStartOpen(false)
                   askConfirm({
                     title: 'Restart the investigation?',
-                    body: 'Unlocked records, notes and your case time will be cleared. This cannot be undone.',
+                    body: 'Unlocked records, notes and your case time will be cleared and you will return to the log-on screen. This cannot be undone.',
                     confirmLabel: 'Restart case',
                     danger: true,
-                    onConfirm: reset,
+                    onConfirm: () => void restartCase(),
                   })
                 }}
               >
@@ -135,8 +160,9 @@ export function Taskbar({ onLogOff }: { onLogOff: () => void }) {
             </button>
           ))}
         </div>
+        <VoiceChip />
         <CountdownChip />
-        <div className="tray__timer" title="Time on case">
+        <div className="tray__timer" title={clockLabel}>
           <svg width="12" height="12" viewBox="0 0 12 12" aria-hidden>
             <circle cx="6" cy="6" r="5" fill="none" stroke="currentColor" strokeWidth="1.2" />
             <path d="M6 3v3.2l2 1.2" fill="none" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
