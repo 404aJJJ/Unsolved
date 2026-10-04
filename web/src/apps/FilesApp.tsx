@@ -28,19 +28,16 @@ export function FilesApp() {
         <input className="search" placeholder="Search Evidence" aria-label="Search evidence" />
       </div>
       <div className="explorer__cmd">
-        <button className="cmd" onClick={() => openFile(selected)}>
-          {locked(selected) ? 'Request access' : 'Open'}
+        <button className="cmd" onClick={() => openFile(selected, true)} title="Temporary testing shortcut: preview the selected file without codes or minigames.">
+          Open selected file (test bypass)
         </button>
-        <span className="cmd__info">{available} of 6 records available</span>
+        <span className="cmd__info">{available} of {FILES.length} records available</span>
       </div>
       <div className="explorer__main">
         <nav className="explorer__nav">
           <div className="nav__head">Favorite Links</div>
           <div className="nav__item nav__item--on">
             <FolderIcon size={16} /> Evidence
-          </div>
-          <div className="nav__item">
-            <FolderIcon size={16} /> Case PB-062
           </div>
         </nav>
         <div className="explorer__grid" role="listbox" aria-label="Evidence files">
@@ -56,7 +53,7 @@ export function FilesApp() {
             >
               <DocIcon size={56} locked={locked(f.id)} />
               <span className="file__name">
-                {f.id} - {f.title}
+                {f.number} - {f.title}
                 {!locked(f.id) && !opened.includes(f.id) && <em className="file__new">NEW</em>}
               </span>
             </button>
@@ -67,7 +64,7 @@ export function FilesApp() {
         <DocIcon size={40} locked={locked(sel.id)} />
         <div>
           <strong>
-            {sel.id} - {sel.title}
+            {sel.number} - {sel.title}
           </strong>
           <div>
             {sel.kind} · {locked(sel.id) ? 'Restricted: access reference required' : 'Available'}

@@ -26,34 +26,24 @@ export function LockDialog({ fileId }: { fileId: FileId }) {
         <div className="uac__head">
           {success ? <span className="uac__check">✓</span> : <ShieldIcon />}
           <div>
-            <div className="uac__title">{success ? 'Access granted' : 'This record requires an access reference'}</div>
+            <div className="uac__title">{success ? 'Access granted' : lock.type === 'keyword' ? 'Enter password' : 'Restricted record'}</div>
             <div className="uac__file">
-              {entry.id} - {entry.title}
+              {entry.number} - {entry.title}
             </div>
           </div>
         </div>
         <div className="uac__body">
-          <div>{lock.prompt}</div>
           {skin === 'pin' && <PinPad onSubmit={u.submit} disabled={u.busy || success} />}
           {skin === 'hack' && <HackGrid onSubmit={u.submit} disabled={u.busy || success} />}
           {skin === 'magnifier' && <MagnifierLock submit={u.submit} disabled={u.busy || success} />}
           {skin === 'text' && <TextLock numeric={lock.type === 'numeric'} submit={u.submit} disabled={u.busy || success} />}
           {u.error && <div className="uac__error">{u.error}</div>}
-          {u.hints.length > 0 && (
-            <div className="uac__hints">
-              <strong>Investigator hints</strong>
-              <ol>
-                {u.hints.map((h, i) => (
-                  <li key={i}>{h}</li>
-                ))}
-              </ol>
-            </div>
-          )}
+
         </div>
         <div className="uac__foot">
           <span className="uac__muted">
             Attempts: {u.attempts} · no lockout
-            {lock.minigame !== 'magnifier' && (
+            {lock.minigame !== 'magnifier' && lock.minigame !== 'text' && (
               <>
                 {' · '}
                 <button type="button" className="linkbtn" onClick={() => setTyped(!typed)}>
@@ -90,14 +80,14 @@ function TextLock({ numeric, submit, disabled }: { numeric: boolean; submit: (a:
       <input
         ref={inputRef}
         className="field"
-        aria-label="Access reference"
+        aria-label={numeric ? 'Access code' : 'Password'}
         value={answer}
         onChange={(e) => setAnswer(e.target.value)}
         inputMode={numeric ? 'numeric' : 'text'}
         maxLength={numeric ? 4 : 32}
         autoComplete="off"
         spellCheck={false}
-        placeholder={numeric ? '0000' : 'Reference'}
+        placeholder={numeric ? '0000' : 'Password'}
       />
       <button type="submit" className="btn btn--primary" disabled={disabled || !answer.trim()}>
         Continue
@@ -106,7 +96,7 @@ function TextLock({ numeric, submit, disabled }: { numeric: boolean; submit: (a:
   )
 }
 
-// File 06: inspect the stone photographed in file 05, then enter the digits.
+// Purchase Records: inspect the stone in the Diamond Examination Report, then enter the digits.
 function MagnifierLock({ submit, disabled }: { submit: (a: string) => Promise<boolean>; disabled: boolean }) {
   const report = useGame((s) => s.unlocked['05'])
   const plate = report?.blocks.find((b) => b.t === 'specimen')
@@ -114,10 +104,10 @@ function MagnifierLock({ submit, disabled }: { submit: (a: string) => Promise<bo
   return (
     <div className="maglock">
       {plate ? (
-        <GemSpecimen engraving={plate.engraving} caption="Plate 05-A from the Gem Examination Report. Drag the lens along the girdle." />
+        <GemSpecimen engraving={plate.engraving} caption="Plate from the Diamond Examination Report. Drag the lens along the girdle." />
       ) : (
         <div className="maglock__missing">
-          No examination plate loaded. Recover <strong>05 - Gem Examination Report</strong> first; the reference is recorded there.
+          Examination plate unavailable.
         </div>
       )}
       <TextLock numeric submit={submit} disabled={disabled} />

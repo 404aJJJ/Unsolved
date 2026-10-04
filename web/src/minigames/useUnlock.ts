@@ -33,7 +33,7 @@ export function useUnlock(fileId: FileId) {
         flashUnlocked(fileId)
         showLock(null)
         openFile(fileId)
-        pushToast({ title: 'Record recovered', body: `${entry.id} - ${entry.title} is now available.` })
+        pushToast({ title: 'Record recovered', body: `${entry.number} - ${entry.title} is now available.` })
       }, 950)
       return true
     }

@@ -11,29 +11,31 @@ export const CASE = {
 }
 
 export const FILES: FileEntry[] = [
-  { id: '01', title: 'Incident Report', kind: 'Police report' },
-  { id: '02', title: 'Interviews and Messages', kind: 'Statement packet' },
-  { id: '03', title: 'Appraisal Correspondence', kind: 'Email archive' },
+  { id: '01', number: '01', title: 'Incident Report', kind: 'Scanned report' },
+  { id: '02', number: '02', title: 'Interviews', kind: 'Scanned statements' },
   {
     id: '04',
-    title: 'Access and Activity Audit',
-    kind: 'Restricted record',
-    lock: { type: 'numeric', minigame: 'pin', prompt: "Enter the four numeric digits from the appraiser's visitor-pass reference." },
+    number: '03',
+    title: 'Security Logs',
+    kind: 'Scanned security record',
+    lock: { type: 'numeric', minigame: 'pin', prompt: "Enter access code." },
   },
   {
     id: '05',
-    title: 'Gem Examination Report',
-    kind: 'Restricted record',
-    lock: { type: 'keyword', minigame: 'hack', prompt: 'Enter the inspection codename used in the appointment correspondence.' },
+    number: '04',
+    title: 'Diamond Examination Report',
+    kind: 'Scanned examination report',
+    lock: { type: 'keyword', minigame: 'text', prompt: 'Enter password.' },
   },
   {
     id: '06',
-    title: 'Supplementary Purchase Records',
-    kind: 'Restricted record',
+    number: '05',
+    title: 'Purchase Records',
+    kind: 'Scanned purchase record',
     lock: {
       type: 'numeric',
       minigame: 'magnifier',
-      prompt: 'Enter the four digits after R in the microscopic mark on the recovered imitation.',
+      prompt: 'Enter access code.',
     },
   },
 ]
@@ -53,7 +55,7 @@ export const EMAILS: Email[] = [
     from: 'Independent appraisal office',
     to: 'Margaret Wood',
     sent: 'Day 0, 11:10AM',
-    subject: 'NIGHTINGALE - Aster Diamond inspection',
+    subject: 'ENIGMA - Aster Diamond inspection',
     body: [
       'Please confirm Appraisal Room B for tomorrow afternoon. We will inspect the exposed stone, record its identifying features, and sign the report before leaving. No transfer off bank premises is scheduled.',
     ],
@@ -63,7 +65,7 @@ export const EMAILS: Email[] = [
     from: 'Margaret Wood',
     to: 'Lily Johnson; Noah Brown',
     sent: 'Day 0, 11:24AM',
-    subject: 'Re: NIGHTINGALE - Aster Diamond inspection',
+    subject: 'Re: ENIGMA - Aster Diamond inspection',
     body: [
       'Room B is booked. Lily, please coordinate the diamond and custody paperwork. Noah, please attend the inspection and escort the appraiser out afterward. I will handle reception and visitor documentation.',
     ],
@@ -87,7 +89,7 @@ export const EMAILS: Email[] = [
     from: 'Independent appraisal office',
     to: 'Lily Johnson',
     sent: 'Day 1, 4:37PM',
-    subject: 'NIGHTINGALE - examination complete',
+    subject: 'ENIGMA - examination complete',
     body: [
       "Examination complete. The genuine Aster Diamond is present in the open presentation case as of 4:37PM. Its recorded inclusion matches the owner's prior certification. Lily Johnson remained present during examination and witnessed the final check. The appraiser will now depart with Noah Brown.",
       'Please print the custody form before securing the case. Do not mistake the custody receipt for a second authenticity examination.',
@@ -126,7 +128,7 @@ export const MESSAGE_THREADS = [
   { id: 'bryant', with: 'Bryant Moreland & Friend', ...CHATS.bryant },
 ]
 
-export const OPEN_DOCS: Record<'01' | '02' | '03', FileDoc> = {
+export const OPEN_DOCS: Record<'01' | '02', FileDoc> = {
   '01': {
     id: '01',
     heading: 'Initial Incident Report',
@@ -160,9 +162,9 @@ export const OPEN_DOCS: Record<'01' | '02' | '03', FileDoc> = {
       {
         t: 'rows',
         rows: [
-          { k: 'Access and Activity Audit', v: "Enter the four numeric digits from the appraiser's visitor-pass reference." },
-          { k: 'Gem Examination Report', v: 'Enter the inspection codename used in the appointment correspondence.' },
-          { k: 'Supplementary Purchase Records', v: 'Enter the four digits after R in the microscopic mark on the recovered imitation. The mark is documented in the detailed gem report.' },
+          { k: 'Access and Activity Audit', v: "Enter access code." },
+          { k: 'Gem Examination Report', v: 'Enter password.' },
+          { k: 'Supplementary Purchase Records', v: 'Enter access code. The mark is documented in the detailed gem report.' },
         ],
       },
     ],
@@ -223,12 +225,7 @@ export const OPEN_DOCS: Record<'01' | '02' | '03', FileDoc> = {
       { t: 'chat', ...CHATS.lily },
     ],
   },
-  '03': {
-    id: '03',
-    heading: 'Appraisal Correspondence',
-    sub: ["Case PB-062 · Extracts from Premier Bank's appointment records", "Aster is the diamond's public name. Internal inspection codenames are separate from asset names."],
-    blocks: EMAILS.map((email) => ({ t: 'email' as const, email })),
-  },
+
 }
 
 import mw from '../assets/suspects/mw.webp'

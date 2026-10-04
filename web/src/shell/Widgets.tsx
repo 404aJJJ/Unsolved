@@ -56,17 +56,17 @@ function CaseWidget() {
         <span key={count} className="gadget__num">
           {count}
         </span>
-        <small>/6</small>
+        <small>/{FILES.length}</small>
       </div>
       <div className="gadget__label">records recovered</div>
       <div className="progress progress--dark">
-        <div className="progress__fill" style={{ width: `${(count / 6) * 100}%` }} />
+        <div className="progress__fill" style={{ width: `${(count / FILES.length) * 100}%` }} />
       </div>
       <div className="gadget__time">
         <span>Time on case</span>
         <Elapsed />
       </div>
-      <div className={`gadget__status ${count === 6 ? 'gadget__status--ready' : ''}`}>{count === 6 ? 'Ready to report' : 'Investigation open'}</div>
+      <div className={`gadget__status ${count === FILES.length ? 'gadget__status--ready' : ''}`}>{count === FILES.length ? 'Ready to report' : 'Investigation open'}</div>
     </aside>
   )
 }

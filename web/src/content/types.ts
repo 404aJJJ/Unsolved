@@ -1,6 +1,6 @@
 // Shared content shapes. The mock API and the real backend return locked files in this same format.
 
-export type FileId = '01' | '02' | '03' | '04' | '05' | '06'
+export type FileId = '01' | '02' | '04' | '05' | '06'
 
 export interface Email {
   id: string
@@ -35,10 +35,11 @@ export interface FileDoc {
 }
 
 // Skin a lock is presented with. All of them submit through the same /api/unlock call.
-export type Minigame = 'pin' | 'hack' | 'magnifier'
+export type Minigame = 'pin' | 'hack' | 'magnifier' | 'text'
 
 export interface FileEntry {
   id: FileId
+  number: string // player-facing number; API IDs stay stable for saved progress
   title: string
   kind: string
   lock?: { type: 'numeric' | 'keyword'; minigame: Minigame; prompt: string }

@@ -8,13 +8,12 @@ import { useNow } from './useNow'
 import { AppIcon, MagnifierGlyph } from './Icons'
 
 const START_ITEMS: { app: AppId; label: string; desc: string }[] = [
-  { app: 'files', label: 'Case Files', desc: 'Evidence 01–06' },
-  { app: 'mail', label: 'Mail', desc: 'Appraisal correspondence' },
+  { app: 'files', label: 'Case Files', desc: 'Evidence 01–05' },
+  { app: 'mail', label: 'Mail', desc: 'Recovered emails' },
   { app: 'messages', label: 'Messages', desc: 'Recovered chat logs' },
   { app: 'board', label: 'Case Board', desc: 'Suspects and leads' },
   { app: 'notes', label: 'Notes', desc: 'Your notebook' },
   { app: 'report', label: 'Submit Report', desc: 'Name the culprit' },
-  { app: 'clock', label: 'Clock', desc: 'Time, world time, timer' },
 ]
 
 function useClock() {

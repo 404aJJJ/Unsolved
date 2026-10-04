@@ -1,43 +1,52 @@
 import { useState } from 'react'
-import { DocView, EmailView, MessageThread } from '../components/content'
+import { EmailView, MessageThread } from '../components/content'
 import { EMAILS, FILES, MESSAGE_THREADS, SUSPECTS, SUSPECT_PHOTOS } from '../content/case'
+import { CASE_IMAGES } from '../content/caseImages'
 import type { FileId } from '../content/types'
 import { useGame } from '../store/game'
 import { getDoc, openFile } from './files'
 
-export function DocWindow({ fileId }: { fileId: FileId }) {
+export function DocWindow({ fileId, preview = false }: { fileId: FileId; preview?: boolean }) {
   useGame((s) => s.unlocked[fileId]) // re-render once an unlock lands
   const doc = getDoc(fileId)
-  if (!doc) return <div className="empty">This record is restricted.</div>
+  if (!doc && !preview) return <div className="empty">This record is restricted.</div>
+  const image = CASE_IMAGES[fileId]
+  const entry = FILES.find((f) => f.id === fileId)!
   return (
     <div className="viewer">
       <div className="viewer__bar">
-        <span className="file__id file__id--sm">{doc.id}</span>
-        <strong>{doc.heading}</strong>
-        <span className="viewer__muted">Evidence {doc.id} of 06 · read-only</span>
+        <span className="file__id file__id--sm">{entry.number}</span>
+        <strong>{image.title}</strong>
+        <span className="viewer__muted">Evidence {entry.number} of {String(FILES.length).padStart(2, '0')} · {preview ? 'test preview' : 'read-only'}</span>
       </div>
       <div className="viewer__scroll">
-        <DocView doc={doc} />
+        <img className={`viewer__scan${image.trimRightEdge ? ' viewer__scan--paper' : ''}`} src={image.src} alt={`${image.title} — Case PB-062 evidence document`} draggable={false} />
       </div>
     </div>
   )
 }
 
 export function MailApp() {
+  const [folder, setFolder] = useState<'inbox' | 'sent' | 'deleted'>('inbox')
   const [sel, setSel] = useState(EMAILS[0].id)
-  const email = EMAILS.find((e) => e.id === sel)!
+  const inbox = EMAILS.filter((e) => e.id !== 'e3')
+  const deleted = EMAILS.filter((e) => e.id === 'e3')
+  const emails = folder === 'inbox' ? inbox : folder === 'deleted' ? deleted : []
+  const email = emails.find((e) => e.id === sel) ?? emails[0]
   return (
     <div className="mail">
       <nav className="mail__folders">
-        <div className="mail__folder mail__folder--on">Inbox ({EMAILS.length})</div>
-        <div className="mail__folder">Sent Items</div>
-        <div className="mail__folder">Deleted Items</div>
-        <div className="mail__note">Source: Evidence 03</div>
+        {([{ id: 'inbox', label: `Inbox (${inbox.length})` }, { id: 'sent', label: 'Sent Items' }, { id: 'deleted', label: 'Deleted Items' }] as const).map((f) => (
+          <button key={f.id} className={`mail__folder ${folder === f.id ? 'mail__folder--on' : ''}`} aria-pressed={folder === f.id} onClick={() => { setFolder(f.id); setSel('') }}>
+            {f.label}
+          </button>
+        ))}
       </nav>
       <ul className="mail__list">
-        {EMAILS.map((e) => (
+        {emails.length === 0 && <li className="mail__empty">Nothing to see here...</li>}
+        {emails.map((e) => (
           <li key={e.id}>
-            <button className={`mail__row ${sel === e.id ? 'mail__row--on' : ''}`} onClick={() => setSel(e.id)}>
+            <button className={`mail__row ${email?.id === e.id ? 'mail__row--on' : ''}`} onClick={() => setSel(e.id)}>
               <span className="mail__from">{e.from}</span>
               <span className="mail__subj">{e.subject}</span>
               <span className="mail__date">{e.sent}</span>
@@ -45,8 +54,8 @@ export function MailApp() {
           </li>
         ))}
       </ul>
-      <div className="mail__read" key={email.id}>
-        <EmailView email={email} />
+      <div className="mail__read" key={email?.id ?? folder}>
+        {email && <EmailView email={email} />}
       </div>
     </div>
   )
@@ -67,7 +76,7 @@ export function MessagesApp() {
             </button>
           </li>
         ))}
-        <li className="im__note">Source: Evidence 02</li>
+        <li className="im__note">Source: Interviews</li>
       </ul>
       <div className="im__chat">
         <div className="im__chathead">{thread.title}</div>
@@ -137,7 +146,7 @@ export function ReportApp() {
           return (
             <li key={f.id}>
               <button className={`report__item ${ok ? 'report__item--ok' : ''}`} onClick={() => openFile(f.id)}>
-                <span className="report__id">{f.id}</span>
+                <span className="report__id">{f.number}</span>
                 <span className="report__name">{f.title}</span>
                 <span className={`chip ${ok ? 'chip--new' : 'chip--restricted'}`}>{ok ? 'Recovered' : 'Restricted'}</span>
               </button>
@@ -145,11 +154,11 @@ export function ReportApp() {
           )
         })}
       </ul>
-      <div className="progress" role="progressbar" aria-valuemin={0} aria-valuemax={6} aria-valuenow={count} aria-label="Records recovered">
-        <div className="progress__fill" style={{ width: `${(count / 6) * 100}%` }} />
+      <div className="progress" role="progressbar" aria-valuemin={0} aria-valuemax={FILES.length} aria-valuenow={count} aria-label="Records recovered">
+        <div className="progress__fill" style={{ width: `${(count / FILES.length) * 100}%` }} />
       </div>
       <div className="report__foot">
-        <span className="uac__muted">{ready ? 'All records recovered. Ready when you are.' : `${count} of 6 records recovered. Recover the rest to begin your report.`}</span>
+        <span className="uac__muted">{ready ? 'All records recovered. Ready when you are.' : `${count} of ${FILES.length} records recovered. Recover the rest to begin your report.`}</span>
         <button className="btn btn--primary" disabled={!ready}>
           Begin report
         </button>

@@ -107,7 +107,7 @@ function CaseClock() {
       <div className="clockpane__muted">Counts while you work. Pauses when this tab is hidden.</div>
       <div className="stats">
         <div>
-          <strong>{recovered}/6</strong>
+          <strong>{recovered}/{FILES.length}</strong>
           <span>records recovered</span>
         </div>
         <div>
@@ -122,7 +122,7 @@ function CaseClock() {
         ) : (
           marks.map((f) => (
             <div key={f.id} className="milestones__row">
-              <span className="file__id file__id--sm">{f.id}</span>
+              <span className="file__id file__id--sm">{f.number}</span>
               <span>{f.title}</span>
               <time>{formatElapsed(unlockedAt[f.id]!)}</time>
             </div>

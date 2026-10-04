@@ -19,6 +19,7 @@ export interface Win {
   max: boolean
   anim: WinAnim
   fileId?: FileId
+  preview?: boolean
 }
 
 export interface ConfirmRequest {
@@ -55,7 +56,7 @@ interface WindowState {
   toasts: Toast[]
   confirm: ConfirmRequest | null
   askConfirm: (c: ConfirmRequest | null) => void
-  open: (app: AppId, opts?: { fileId?: FileId; title?: string }) => void
+  open: (app: AppId, opts?: { fileId?: FileId; title?: string; preview?: boolean }) => void
   focus: (id: string) => void
   requestClose: (id: string) => void
   requestMin: (id: string) => void
@@ -90,7 +91,7 @@ export const useWindows = create<WindowState>((set, get) => ({
   confirm: null,
   askConfirm: (confirm) => set({ confirm }),
   open: (app, opts = {}) => {
-    const id = opts.fileId ? `${app}-${opts.fileId}` : app
+    const id = opts.fileId ? `${app}-${opts.fileId}${opts.preview ? '-preview' : ''}` : app
     const existing = get().windows.find((w) => w.id === id)
     if (existing) {
       get().focus(id)
@@ -108,7 +109,7 @@ export const useWindows = create<WindowState>((set, get) => ({
       topZ: s.topZ + 1,
       windows: [
         ...s.windows,
-        { id, app, title: opts.title ?? meta.title, x, y, w, h, z: s.topZ + 1, min: false, max: false, anim: 'open', fileId: opts.fileId },
+        { id, app, title: opts.title ?? meta.title, x, y, w, h, z: s.topZ + 1, min: false, max: false, anim: 'open', fileId: opts.fileId, preview: opts.preview },
       ],
     }))
   },
