@@ -199,6 +199,26 @@ class PostgresUrlTests(unittest.TestCase):
         url = "postgresql://user:pw@ep-example-pooler.c-13.us-east-1.aws.neon.tech/neondb?sslmode=require"
         self.assertEqual(_serverless_postgres_url(url), url)
 
+    def test_postgres_insert_does_not_need_connection_executemany(self):
+        from server.main import _Postgres
+
+        class Raw:
+            def __init__(self):
+                self.calls = []
+
+            def execute(self, sql, params=()):
+                self.calls.append((sql, params))
+
+        raw = Raw()
+        _Postgres(raw).executemany(
+            "INSERT INTO progress (uid, file_id) VALUES (?, ?) ON CONFLICT DO NOTHING",
+            [("u", "05")],
+        )
+        self.assertEqual(raw.calls, [(
+            "INSERT INTO progress (uid, file_id) VALUES (%s, %s) ON CONFLICT DO NOTHING",
+            ("u", "05"),
+        )])
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -129,7 +129,11 @@ class _Postgres:
         return self.raw.execute(self._sql(sql), params)
 
     def executemany(self, sql, seq):
-        return self.raw.executemany(self._sql(sql), seq)
+        # psycopg connections have execute(), not executemany(). Cursor.executemany() also
+        # opens a pipeline, which the Neon pooler rejects.
+        sql = self._sql(sql)
+        for params in seq:
+            self.raw.execute(sql, params)
 
     def commit(self):
         self.raw.commit()
@@ -211,7 +215,8 @@ def _with_database(work, failure):
                 connection.close()
     except HTTPException:
         raise
-    except Exception:
+    except Exception as exc:
+        print(f"[api] {type(exc).__name__}", flush=True)
         raise HTTPException(status_code=503, detail=failure)
 
 
