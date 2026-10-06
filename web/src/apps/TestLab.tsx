@@ -5,7 +5,7 @@ import type { FileId } from '../content/types'
 import { API_BASE, mockApiActive, setMockApi } from '../api/http'
 import { useApi } from '../store/api'
 import { useNarrator } from '../store/narrator'
-import { useGame } from '../store/game'
+import { TIME_LIMIT, useGame } from '../store/game'
 import { useTimer } from '../store/timer'
 import { useWindows, type AppId } from '../store/windows'
 import { openFile } from './files'
@@ -155,10 +155,10 @@ export function TestLab() {
         <button className="btn" onClick={() => askConfirm({ title: 'Reset the whole case?', body: 'Clears everything and starts a fresh 30:00 timed game.', confirmLabel: 'Reset', danger: true, onConfirm: async () => { await resetProgress().catch(() => {}); reset(); useGame.getState().startGame('timed'); setOut('Case reset (timed 30:00).') } })}>
           Reset (timed 30:00)
         </button>
-        <button className="btn" onClick={() => { const g = useGame.getState(); if (g.mode !== 'timed') return setOut('Start a timed game first.'); useGame.setState({ deadline: Date.now() + 5000 }); setOut('Deadline set to 5 seconds from now.') }}>
+        <button className="btn" onClick={() => { const g = useGame.getState(); if (g.mode !== 'timed') return setOut('Start a timed game first.'); useGame.setState({ elapsed: TIME_LIMIT - 5, deadline: Date.now() + 5000, timeUp: false }); setOut('Deadline set to 5 seconds from now.') }}>
           Expire in 5s
         </button>
-        <button className="btn" onClick={() => { const g = useGame.getState(); if (g.mode !== 'timed') return setOut('Start a timed game first.'); useGame.setState({ deadline: Date.now() + 305_000 }); setOut('5:05 left: the five-minute warning follows shortly.') }}>
+        <button className="btn" onClick={() => { const g = useGame.getState(); if (g.mode !== 'timed') return setOut('Start a timed game first.'); useGame.setState({ elapsed: TIME_LIMIT - 305, deadline: Date.now() + 305_000, timeUp: false }); setOut('5:05 left: the five-minute warning follows shortly.') }}>
           Set 5:05 left
         </button>
         <button className="btn" onClick={() => { clearResult(); setOut('Result cleared; the case is open again.') }}>Clear result</button>

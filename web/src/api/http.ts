@@ -61,7 +61,8 @@ export async function apiRequest<T>(path: string, opts: RequestOptions = {}): Pr
     if (!res.ok) {
       // Backends answer errors as { "error": "..." }; anything else (HTML from a proxy, empty body) gets a generic message.
       const data = await res.json().catch(() => null)
-      return { ok: false, status: res.status, error: data?.error ?? `Server error ${res.status}` }
+      const detail = typeof data?.detail === 'string' ? data.detail : null
+      return { ok: false, status: res.status, error: data?.error ?? detail ?? `Server error ${res.status}` }
     }
     return { ok: true, data: (as === 'blob' ? await res.blob() : await res.json()) as T }
   } catch (err) {

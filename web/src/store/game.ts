@@ -22,7 +22,7 @@ interface GameState {
   notes: string
   mode: GameMode
   started: boolean // a game is in progress (mode is locked)
-  deadline: number | null // epoch ms; timed mode only. Wall clock, so leaving the tab does not pause it
+  deadline: number | null // epoch ms while a timed game is on screen. Not saved: closing the game freezes time left
   timeUp: boolean
   elapsed: number // seconds spent on the case
   unlockedAt: Partial<Record<FileId, number>> // case time when each file was recovered
@@ -36,6 +36,8 @@ interface GameState {
   markOpened: (id: FileId) => void
   setNotes: (notes: string) => void
   startGame: (mode: GameMode) => void
+  pauseClock: () => void
+  resumeClock: () => void
   tick: () => void
   setSuspectNote: (id: string, note: string) => void
   setDraft: (d: Partial<ReportDraft>) => void
@@ -63,7 +65,22 @@ export const useGame = create<GameState>()(
       setNotes: (notes) => set({ notes }),
       startGame: (mode) =>
         set({ started: true, mode, deadline: mode === 'timed' ? Date.now() + TIME_LIMIT * 1000 : null, elapsed: 0, timeUp: false }),
-      // The clock stops once the report is filed. Timed mode follows the wall clock (deadline); untimed counts seconds.
+      // Closing the tab, hiding it, or logging off freezes time left. The deadline is only a display aid while the game is open.
+      pauseClock: () =>
+        set((s) => {
+          if (s.mode !== 'timed' || !s.deadline) return s
+          const remaining = Math.max(0, Math.ceil((s.deadline - Date.now()) / 1000))
+          return { deadline: null, elapsed: TIME_LIMIT - remaining, timeUp: remaining === 0 }
+        }),
+      resumeClock: () =>
+        set((s) => {
+          if (s.mode !== 'timed' || !s.started || s.result || s.timeUp || s.deadline) return s
+          const remaining = Math.max(0, TIME_LIMIT - s.elapsed)
+          if (remaining === 0) return { timeUp: true }
+          return { deadline: Date.now() + remaining * 1000 }
+        }),
+      // The clock stops once the report is filed. While a timed game is open, elapsed follows the deadline so the
+      // countdown does not drift. Untimed mode counts seconds.
       tick: () =>
         set((s) => {
           if (s.result || !s.started) return s
@@ -71,6 +88,7 @@ export const useGame = create<GameState>()(
             const remaining = Math.max(0, Math.ceil((s.deadline - Date.now()) / 1000))
             return { elapsed: TIME_LIMIT - remaining, timeUp: remaining === 0 }
           }
+          if (s.mode === 'timed') return s
           return { elapsed: s.elapsed + 1 }
         }),
       setReportStarted: (reportStarted) => set({ reportStarted }),
@@ -91,7 +109,9 @@ export const useGame = create<GameState>()(
     {
       name: 'unsolved-game',
       // v2: the report draft's evidence changed from an object to a list of record ids.
-      version: 4,
+      version: 5,
+      // The live deadline is not saved. Time left is `elapsed`, so closing the game does not burn the countdown.
+      partialize: ({ deadline: _deadline, ...saved }) => saved,
       migrate: (state, version) => {
         const saved = state as GameState & { solved?: unknown }
         const fixed = version < 2 ? { ...saved, draft: { ...saved.draft, evidence: [] } } : saved
@@ -99,6 +119,8 @@ export const useGame = create<GameState>()(
         delete fixed.solved
         // v4: timed mode. Older saves keep playing untimed.
         if (version < 4) Object.assign(fixed, { mode: 'untimed', started: fixed.elapsed > 0, deadline: null, timeUp: false })
+        // v5: drop a saved wall-clock deadline and keep the seconds already spent.
+        if (version < 5) fixed.deadline = null
         delete (fixed as { briefPlayed?: boolean }).briefPlayed
         return fixed
       },

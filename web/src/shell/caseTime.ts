@@ -22,25 +22,30 @@ export function timeLeft(s: { mode: string; elapsed: number }) {
   return s.mode === 'timed' ? Math.max(0, TIME_LIMIT - s.elapsed) : null
 }
 
-// Time left from the deadline at a given moment (login screen, taskbar). Null when untimed or not started.
-export function liveTimeLeft(s: { mode: string; deadline: number | null; elapsed: number }, nowMs: number) {
-  if (s.mode !== 'timed') return null
-  return s.deadline ? Math.max(0, Math.ceil((s.deadline - nowMs) / 1000)) : Math.max(0, TIME_LIMIT - s.elapsed)
-}
-
-// Advances the case clock. Timed games recompute from the deadline four times a second (so the countdown never skips or
-// drifts, and the tab being hidden does not pause it); untimed games add a second at a time and only while the tab is visible.
+// Advances the case clock while the game is on screen. Hiding or closing the tab freezes time left.
+// Timed games recompute from a deadline four times a second so the countdown does not skip; untimed games add one second.
 export function useCaseTimer() {
   const tick = useGame((s) => s.tick)
   useEffect(() => {
+    const sync = () => {
+      if (document.visibilityState === 'visible') useGame.getState().resumeClock()
+      else useGame.getState().pauseClock()
+    }
+    sync()
     tick()
+    document.addEventListener('visibilitychange', sync)
     let n = 0
     const id = setInterval(() => {
+      if (document.visibilityState !== 'visible') return
       n++
       if (useGame.getState().mode === 'timed') tick()
-      else if (n % 4 === 0 && document.visibilityState === 'visible') tick()
+      else if (n % 4 === 0) tick()
     }, 250)
-    return () => clearInterval(id)
+    return () => {
+      clearInterval(id)
+      document.removeEventListener('visibilitychange', sync)
+      useGame.getState().pauseClock()
+    }
   }, [tick])
 }
 
