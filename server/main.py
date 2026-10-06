@@ -10,9 +10,9 @@ import os
 import re
 import secrets
 import sqlite3
-from contextlib import closing
 from pathlib import Path
 from threading import RLock
+from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 
 from fastapi import FastAPI, HTTPException, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
@@ -31,10 +31,9 @@ else:
     from envfile import load_env_files
 
 try:
-    from psycopg import Error as PostgresError
+    import psycopg
 except ImportError:  # local venv without the extra; SQLite still works
-    class PostgresError(Exception):
-        pass
+    psycopg = None
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 # The repo-root .env supplies keys for local runs. Real environment variables (Docker, systemd) take priority.
@@ -68,7 +67,6 @@ STATIC_DIR = Path(os.environ.get("UNSOLVED_STATIC_DIR", str(REPO_ROOT / "web" / 
 # Vercel sets this. The site is served by the web service, so this process must not also claim those paths.
 ON_VERCEL = os.environ.get("VERCEL") == "1"
 DB_LOCK = RLock()
-DB_ERRORS = (OSError, sqlite3.Error, PostgresError, ImportError)
 _remote_schema_ready = False
 LOCKED_IDS = {"04", "05", "06"}
 # Developer shortcuts (Test Lab routes and the ?preview=true image bypass). Both are OFF unless explicitly enabled;
@@ -100,6 +98,13 @@ async def player_session(request: Request, call_next):
         secure = request.url.scheme == "https" or request.headers.get("x-forwarded-proto") == "https"
         response.set_cookie("uid", uid, max_age=COOKIE_MAX_AGE, httponly=True, samesite="lax", secure=secure, path="/")
     return response
+
+
+@app.exception_handler(Exception)
+async def unexpected_error(request: Request, exc: Exception):
+    """Keep a crash inside the app. The platform otherwise answers with a plain-text 500 the site cannot read."""
+    print(f"[api] {type(exc).__name__}", flush=True)
+    return JSONResponse(status_code=500, content={"error": "The server hit an unexpected error."})
 
 
 def uid_of(request: Request) -> str:
@@ -145,8 +150,27 @@ def postgres_url():
     for name in ("DATABASE_URL", "POSTGRES_URL"):
         value = os.environ.get(name, "").strip()
         if value.startswith("postgres://") or value.startswith("postgresql://"):
-            return value
+            return _serverless_postgres_url(value)
     return ""
+
+
+def _serverless_postgres_url(url):
+    """Use Neon's pooler and drop channel binding.
+
+    A direct host from a short-lived function stalls while the compute wakes, and the
+    platform then replaces the response with a plain-text 500. channel_binding=require
+    also aborts libpq on that runtime.
+    """
+    parts = urlsplit(url)
+    host = parts.hostname or ""
+    if host.endswith(".neon.tech") and "-pooler" not in host.split(".", 1)[0]:
+        host = host.replace(".c-", "-pooler.c-", 1)
+    userinfo = ""
+    if "@" in parts.netloc:
+        userinfo = parts.netloc.rsplit("@", 1)[0] + "@"
+    port = f":{parts.port}" if parts.port else ""
+    query = [(key, value) for key, value in parse_qsl(parts.query, keep_blank_values=True) if key != "channel_binding"]
+    return urlunsplit((parts.scheme, f"{userinfo}{host}{port}", parts.path, urlencode(query), parts.fragment))
 
 
 def _ensure_schema(connection):
@@ -162,9 +186,10 @@ def open_database():
     global _remote_schema_ready
     url = postgres_url()
     if url:
-        import psycopg
-
-        connection = _Postgres(psycopg.connect(url, connect_timeout=10))
+        if psycopg is None:
+            raise ImportError("psycopg is not installed")
+        # prepare_threshold=None: the Neon pooler is PgBouncer in transaction mode, which rejects prepared statements.
+        connection = _Postgres(psycopg.connect(url, connect_timeout=8, prepare_threshold=None))
         if not _remote_schema_ready:
             _ensure_schema(connection)
             _remote_schema_ready = True
@@ -175,32 +200,46 @@ def open_database():
     return connection
 
 
-def read_unlocked_files(uid):
+def _with_database(work, failure):
+    """Run work(connection) and always close. Any failure becomes a JSON 503, not a crashed function."""
     try:
-        with DB_LOCK, closing(open_database()) as connection:
-            rows = connection.execute("SELECT file_id FROM progress WHERE uid = ?", (uid,)).fetchall()
+        with DB_LOCK:
+            connection = open_database()
+            try:
+                return work(connection)
+            finally:
+                connection.close()
+    except HTTPException:
+        raise
+    except Exception:
+        raise HTTPException(status_code=503, detail=failure)
+
+
+def read_unlocked_files(uid):
+    def work(connection):
+        rows = connection.execute("SELECT file_id FROM progress WHERE uid = ?", (uid,)).fetchall()
         return {row[0] for row in rows if row[0] in LOCKED_IDS}
-    except DB_ERRORS:
-        raise HTTPException(status_code=503, detail="Saved progress could not be read.")
+
+    return _with_database(work, "Saved progress could not be read.")
 
 
 def add_unlocked_files(uid, ids):
-    try:
-        with DB_LOCK, closing(open_database()) as connection, connection:
-            connection.executemany(
-                "INSERT INTO progress (uid, file_id) VALUES (?, ?) ON CONFLICT DO NOTHING",
-                [(uid, i) for i in ids],
-            )
-    except DB_ERRORS:
-        raise HTTPException(status_code=503, detail="Progress could not be saved.")
+    def work(connection):
+        connection.executemany(
+            "INSERT INTO progress (uid, file_id) VALUES (?, ?) ON CONFLICT DO NOTHING",
+            [(uid, i) for i in ids],
+        )
+        connection.commit()
+
+    _with_database(work, "Progress could not be saved.")
 
 
 def remove_unlocked_file(uid, file_id):
-    try:
-        with DB_LOCK, closing(open_database()) as connection, connection:
-            connection.execute("DELETE FROM progress WHERE uid = ? AND file_id = ?", (uid, file_id))
-    except DB_ERRORS:
-        raise HTTPException(status_code=503, detail="Progress could not be saved.")
+    def work(connection):
+        connection.execute("DELETE FROM progress WHERE uid = ? AND file_id = ?", (uid, file_id))
+        connection.commit()
+
+    _with_database(work, "Progress could not be saved.")
 
 
 def using_sample():
@@ -252,30 +291,29 @@ class NotesRequest(BaseModel):
 
 @app.get("/api/notes")
 def get_notes(request: Request):
-    try:
-        with DB_LOCK, closing(open_database()) as connection:
-            row = connection.execute("SELECT text FROM notes WHERE uid = ?", (uid_of(request),)).fetchone()
-        # None means nothing has been saved yet, so old browser notes can be kept.
-        return JSONResponse({"text": row[0] if row is not None else None}, headers={"Cache-Control": "no-store"})
-    except DB_ERRORS:
-        raise HTTPException(status_code=503, detail="Notebook could not be loaded.")
+    def work(connection):
+        return connection.execute("SELECT text FROM notes WHERE uid = ?", (uid_of(request),)).fetchone()
+
+    row = _with_database(work, "Notebook could not be loaded.")
+    # None means nothing has been saved yet, so old browser notes can be kept.
+    return JSONResponse({"text": row[0] if row is not None else None}, headers={"Cache-Control": "no-store"})
 
 
 def save_notes(uid, text):
-    with DB_LOCK, closing(open_database()) as connection, connection:
+    def work(connection):
         connection.execute(
             "INSERT INTO notes (uid, text) VALUES (?, ?) ON CONFLICT(uid) DO UPDATE SET text = excluded.text",
             (uid, text),
         )
+        connection.commit()
+
+    _with_database(work, "Notebook could not be saved.")
 
 
 @app.put("/api/notes")
 def update_notes(body: NotesRequest, request: Request):
-    try:
-        save_notes(uid_of(request), body.text)
-        return {"ok": True}
-    except DB_ERRORS:
-        raise HTTPException(status_code=503, detail="Notebook could not be saved.")
+    save_notes(uid_of(request), body.text)
+    return {"ok": True}
 
 
 # ---------- progress ----------
@@ -294,12 +332,13 @@ def progress(request: Request):
 @app.post("/api/progress/reset")
 def reset_progress(request: Request):
     uid = uid_of(request)
-    try:
-        with DB_LOCK, closing(open_database()) as connection, connection:
-            connection.execute("DELETE FROM progress WHERE uid = ?", (uid,))
-            connection.execute("INSERT INTO notes (uid, text) VALUES (?, '') ON CONFLICT(uid) DO UPDATE SET text = ''", (uid,))
-    except DB_ERRORS:
-        raise HTTPException(status_code=503, detail="Progress could not be reset.")
+
+    def work(connection):
+        connection.execute("DELETE FROM progress WHERE uid = ?", (uid,))
+        connection.execute("INSERT INTO notes (uid, text) VALUES (?, '') ON CONFLICT(uid) DO UPDATE SET text = ''", (uid,))
+        connection.commit()
+
+    _with_database(work, "Progress could not be reset.")
     return {"ok": True}
 
 

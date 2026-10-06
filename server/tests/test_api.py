@@ -6,7 +6,7 @@ from pathlib import Path
 from unittest.mock import patch
 
 from fastapi.testclient import TestClient
-from server.main import app
+from server.main import _serverless_postgres_url, app
 
 
 class ApiTests(unittest.TestCase):
@@ -184,6 +184,20 @@ class ApiTests(unittest.TestCase):
         })
         self.assertEqual(response.status_code, 200)
         self.assertIn("PUT", response.headers["access-control-allow-methods"])
+
+
+class PostgresUrlTests(unittest.TestCase):
+    def test_neon_direct_host_uses_the_pooler_without_channel_binding(self):
+        url = "postgresql://user:pw@ep-example.c-13.us-east-1.aws.neon.tech/neondb?channel_binding=require&sslmode=require"
+        got = _serverless_postgres_url(url)
+        self.assertEqual(
+            got,
+            "postgresql://user:pw@ep-example-pooler.c-13.us-east-1.aws.neon.tech/neondb?sslmode=require",
+        )
+
+    def test_pooler_host_is_left_alone(self):
+        url = "postgresql://user:pw@ep-example-pooler.c-13.us-east-1.aws.neon.tech/neondb?sslmode=require"
+        self.assertEqual(_serverless_postgres_url(url), url)
 
 
 if __name__ == "__main__":

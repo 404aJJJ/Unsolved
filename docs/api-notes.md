@@ -4,7 +4,7 @@ Companion to [api.md](api.md) (the contract) and [deploy-vultr.md](deploy-vultr.
 
 ## Live setup
 - **API today:** Vultr Cloud Compute, Docker compose: Caddy (HTTPS) → one container running `server/main.py` (FastAPI). Address: `https://45-76-235-124.sslip.io` (the server IP `45.76.235.124` written as an `sslip.io` name so Caddy can get a certificate without owning a domain).
-- **Where it is going:** one Vercel project serves the site and the same FastAPI app (`vercel.json` services). Player data moves from the SQLite volume to Neon Postgres. See [deploy-vultr.md](deploy-vultr.md). The existing project (root directory `web`) still proxies `/api` to Vultr via `web/vercel.json`. Switch that root directory only after `DATABASE_URL` and `UNSOLVED_CASE_JSON` are set, or the live site loses its API.
+- **Where it is going:** one Vercel project serves the site and the same FastAPI app (`vercel.json` services). Player data moves from the SQLite volume to Neon Postgres. See [deploy-vultr.md](deploy-vultr.md). `web/vercel.json` does not proxy `/api`.
 - **Check it any time:** `bash deploy/smoke-test.sh https://45-76-235-124.sslip.io` (17 checks, no secrets needed).
 
 ## Operating it (on the server, in `~/Unsolved`)

@@ -80,8 +80,8 @@ One small Vultr Cloud Compute server runs everything today: Caddy (HTTPS, port 8
    ```
    Open the site, log on, play. Narration shows `false` if the key is missing or still the `insert_...` placeholder.
 
-## Old split: website on Vercel, API on Vultr
-This is what the existing Vercel project still does, as long as its Root Directory stays `web`. `web/vercel.json` forwards `/api/*` to `https://45-76-235-124.sslip.io`. Leave that project alone until the new one (root directory = the repo) is serving both. Changing the root directory is the cutover: after that, the root `vercel.json` sends `/api` to the FastAPI service and this proxy is unused. The Vultr box can be shut off once a reload on the Vercel URL still has the player's unlocks.
+## Website and API
+The live site is the Vercel project whose root is this repo. The root `vercel.json` sends `/api` to the FastAPI service and everything else to the Vite site. `web/vercel.json` only keeps client-side routes working; it does not forward `/api` anywhere. The Vultr box can be shut off.
 
 ## Updating
 ```sh

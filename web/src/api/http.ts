@@ -48,25 +48,37 @@ export function apiUrl(path: string) {
 
 export async function apiRequest<T>(path: string, opts: RequestOptions = {}): Promise<ApiResult<T>> {
   const { method = opts.body === undefined ? 'GET' : 'POST', body, timeoutMs = 15_000, as = 'json', signal } = opts
-  try {
-    const res = await fetch(apiUrl(path), {
-      method,
-      cache: method === 'GET' ? 'no-store' : undefined,
-      // The player's game is keyed by a cookie. Same-origin sends it automatically; a separate API origin needs this.
-      credentials: API_BASE ? 'include' : 'same-origin',
-      headers: body === undefined ? undefined : { 'Content-Type': 'application/json' },
-      body: body === undefined ? undefined : JSON.stringify(body),
-      signal: signal ? AbortSignal.any([signal, AbortSignal.timeout(timeoutMs)]) : AbortSignal.timeout(timeoutMs),
-    })
-    if (!res.ok) {
-      // Backends answer errors as { "error": "..." }; anything else (HTML from a proxy, empty body) gets a generic message.
-      const data = await res.json().catch(() => null)
-      const detail = typeof data?.detail === 'string' ? data.detail : null
-      return { ok: false, status: res.status, error: data?.error ?? detail ?? `Server error ${res.status}` }
+  // A cold database can kill the first request. One retry covers the wake-up.
+  for (let attempt = 0; attempt < 2; attempt++) {
+    try {
+      const res = await fetch(apiUrl(path), {
+        method,
+        cache: method === 'GET' ? 'no-store' : undefined,
+        // The player's game is keyed by a cookie. Same-origin sends it automatically; a separate API origin needs this.
+        credentials: API_BASE ? 'include' : 'same-origin',
+        headers: body === undefined ? undefined : { 'Content-Type': 'application/json' },
+        body: body === undefined ? undefined : JSON.stringify(body),
+        signal: signal ? AbortSignal.any([signal, AbortSignal.timeout(timeoutMs)]) : AbortSignal.timeout(timeoutMs),
+      })
+      if (!res.ok) {
+        if (res.status >= 500 && attempt === 0 && !signal?.aborted) {
+          await new Promise((resolve) => setTimeout(resolve, 700))
+          continue
+        }
+        // Backends answer errors as { "error": "..." }; anything else (HTML from a proxy, empty body) gets a generic message.
+        const data = await res.json().catch(() => null)
+        const detail = typeof data?.detail === 'string' ? data.detail : null
+        return { ok: false, status: res.status, error: data?.error ?? detail ?? `Server error ${res.status}` }
+      }
+      return { ok: true, data: (as === 'blob' ? await res.blob() : await res.json()) as T }
+    } catch (err) {
+      const aborted = err instanceof DOMException && (err.name === 'AbortError' || err.name === 'TimeoutError')
+      if (!aborted && attempt === 0 && !signal?.aborted) {
+        await new Promise((resolve) => setTimeout(resolve, 700))
+        continue
+      }
+      return { ok: false, status: 0, error: aborted ? 'The server took too long to respond.' : 'Cannot reach the investigation server.' }
     }
-    return { ok: true, data: (as === 'blob' ? await res.blob() : await res.json()) as T }
-  } catch (err) {
-    const aborted = err instanceof DOMException && (err.name === 'AbortError' || err.name === 'TimeoutError')
-    return { ok: false, status: 0, error: aborted ? 'The server took too long to respond.' : 'Cannot reach the investigation server.' }
   }
+  return { ok: false, status: 0, error: 'Cannot reach the investigation server.' }
 }
