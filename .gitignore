@@ -13,6 +13,9 @@ GEMINI.md
 .windsurfrules
 .aider*
 
+# Vercel link metadata (project id, org id)
+.vercel/
+
 # Dependencies / build
 node_modules/
 dist/

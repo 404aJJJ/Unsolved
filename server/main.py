@@ -1,8 +1,9 @@
 """Unsolved.exe API. Run from the repository root: uvicorn server.main:app --port 8000
 
 Endpoints: health, config, unlock, progress, notes, evidence images, accuse (Gemini grading) and narrate (ElevenLabs).
-Every player gets their own game: a random `uid` cookie keys their unlocked files and notebook in SQLite.
-In production one process also serves the built website (web/dist), so the site and API share an origin.
+Every player gets their own game: a random `uid` cookie keys their unlocked files and notebook.
+Locally that database is a SQLite file. On Vercel it is Neon Postgres when DATABASE_URL is set.
+On Vultr one process also serves the built website (web/dist). On Vercel the site is a separate static service.
 """
 import json
 import os
@@ -19,9 +20,21 @@ from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
-from . import accuse as accuse_logic
-from . import narrate as narrate_logic
-from .envfile import configured, load_env_files
+# Vercel loads this file as `main:app` (no package). Local and Docker load it as `server.main`.
+if __package__:
+    from . import accuse as accuse_logic
+    from . import narrate as narrate_logic
+    from .envfile import configured, load_env_files
+else:
+    import accuse as accuse_logic
+    import narrate as narrate_logic
+    from envfile import configured, load_env_files
+
+try:
+    from psycopg import Error as PostgresError
+except ImportError:  # local venv without the extra; SQLite still works
+    class PostgresError(Exception):
+        pass
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 # The repo-root .env supplies keys for local runs. Real environment variables (Docker, systemd) take priority.
@@ -52,7 +65,11 @@ SAMPLE_PATH = Path(__file__).parent / "sample" / "case-sample.json"
 ALLOW_SAMPLE = os.environ.get("UNSOLVED_ALLOW_SAMPLE", "0") == "1"
 DATABASE_PATH = Path(os.environ.get("UNSOLVED_DB_PATH", str(Path(__file__).parent / "private" / "game.sqlite3")))
 STATIC_DIR = Path(os.environ.get("UNSOLVED_STATIC_DIR", str(REPO_ROOT / "web" / "dist")))
+# Vercel sets this. The site is served by the web service, so this process must not also claim those paths.
+ON_VERCEL = os.environ.get("VERCEL") == "1"
 DB_LOCK = RLock()
+DB_ERRORS = (OSError, sqlite3.Error, PostgresError, ImportError)
+_remote_schema_ready = False
 LOCKED_IDS = {"04", "05", "06"}
 # Developer shortcuts (Test Lab routes and the ?preview=true image bypass). Both are OFF unless explicitly enabled;
 # never set them on the public server.
@@ -93,15 +110,68 @@ def client_key(request: Request) -> str:
     return request.client.host if request.client else "unknown"
 
 
-def open_database():
-    """SQLite creates this database file if it doesn't exist yet."""
-    DATABASE_PATH.parent.mkdir(parents=True, exist_ok=True)
-    connection = sqlite3.connect(DATABASE_PATH)
+class _Postgres:
+    """psycopg connection that still accepts the sqlite-style `?` placeholders used everywhere else."""
+
+    def __init__(self, raw):
+        self.raw = raw
+
+    @staticmethod
+    def _sql(sql):
+        return sql.replace("?", "%s")
+
+    def execute(self, sql, params=()):
+        return self.raw.execute(self._sql(sql), params)
+
+    def executemany(self, sql, seq):
+        return self.raw.executemany(self._sql(sql), seq)
+
+    def commit(self):
+        self.raw.commit()
+
+    def close(self):
+        self.raw.close()
+
+    def __enter__(self):
+        self.raw.__enter__()
+        return self
+
+    def __exit__(self, exc_type, exc, tb):
+        return self.raw.__exit__(exc_type, exc, tb)
+
+
+def postgres_url():
+    """Neon (or any Postgres) connection string. Vercel sets DATABASE_URL; POSTGRES_URL is the older name."""
+    for name in ("DATABASE_URL", "POSTGRES_URL"):
+        value = os.environ.get(name, "").strip()
+        if value.startswith("postgres://") or value.startswith("postgresql://"):
+            return value
+    return ""
+
+
+def _ensure_schema(connection):
     connection.execute("CREATE TABLE IF NOT EXISTS notes (uid TEXT PRIMARY KEY, text TEXT NOT NULL)")
     connection.execute(
         "CREATE TABLE IF NOT EXISTS progress (uid TEXT NOT NULL, file_id TEXT NOT NULL, PRIMARY KEY (uid, file_id))"
     )
     connection.commit()
+
+
+def open_database():
+    """Local SQLite file, or Neon when DATABASE_URL is a postgres connection string."""
+    global _remote_schema_ready
+    url = postgres_url()
+    if url:
+        import psycopg
+
+        connection = _Postgres(psycopg.connect(url, connect_timeout=10))
+        if not _remote_schema_ready:
+            _ensure_schema(connection)
+            _remote_schema_ready = True
+        return connection
+    DATABASE_PATH.parent.mkdir(parents=True, exist_ok=True)
+    connection = sqlite3.connect(DATABASE_PATH)
+    _ensure_schema(connection)
     return connection
 
 
@@ -110,15 +180,18 @@ def read_unlocked_files(uid):
         with DB_LOCK, closing(open_database()) as connection:
             rows = connection.execute("SELECT file_id FROM progress WHERE uid = ?", (uid,)).fetchall()
         return {row[0] for row in rows if row[0] in LOCKED_IDS}
-    except (OSError, sqlite3.Error):
+    except DB_ERRORS:
         raise HTTPException(status_code=503, detail="Saved progress could not be read.")
 
 
 def add_unlocked_files(uid, ids):
     try:
         with DB_LOCK, closing(open_database()) as connection, connection:
-            connection.executemany("INSERT OR IGNORE INTO progress (uid, file_id) VALUES (?, ?)", [(uid, i) for i in ids])
-    except (OSError, sqlite3.Error):
+            connection.executemany(
+                "INSERT INTO progress (uid, file_id) VALUES (?, ?) ON CONFLICT DO NOTHING",
+                [(uid, i) for i in ids],
+            )
+    except DB_ERRORS:
         raise HTTPException(status_code=503, detail="Progress could not be saved.")
 
 
@@ -126,18 +199,32 @@ def remove_unlocked_file(uid, file_id):
     try:
         with DB_LOCK, closing(open_database()) as connection, connection:
             connection.execute("DELETE FROM progress WHERE uid = ? AND file_id = ?", (uid, file_id))
-    except (OSError, sqlite3.Error):
+    except DB_ERRORS:
         raise HTTPException(status_code=503, detail="Progress could not be saved.")
+
+
+def using_sample():
+    """The fake case is only a stand-in when no real case was provided."""
+    if os.environ.get("UNSOLVED_CASE_JSON", "").strip():
+        return False
+    return not CASE_PATH.exists() and ALLOW_SAMPLE
 
 
 def case_file():
     """The real case file, or (developers only, when allowed) the fake sample."""
-    if not CASE_PATH.exists() and ALLOW_SAMPLE:
+    if using_sample():
         return SAMPLE_PATH
     return CASE_PATH
 
 
 def load_case():
+    """Real case from UNSOLVED_CASE_JSON (Vercel), else the case file, else the sample when allowed."""
+    raw = os.environ.get("UNSOLVED_CASE_JSON", "").strip()
+    if raw:
+        try:
+            return json.loads(raw)
+        except ValueError:
+            return None
     try:
         return json.loads(case_file().read_text(encoding="utf-8"))
     except (OSError, ValueError):
@@ -170,7 +257,7 @@ def get_notes(request: Request):
             row = connection.execute("SELECT text FROM notes WHERE uid = ?", (uid_of(request),)).fetchone()
         # None means nothing has been saved yet, so old browser notes can be kept.
         return JSONResponse({"text": row[0] if row is not None else None}, headers={"Cache-Control": "no-store"})
-    except (OSError, sqlite3.Error):
+    except DB_ERRORS:
         raise HTTPException(status_code=503, detail="Notebook could not be loaded.")
 
 
@@ -187,7 +274,7 @@ def update_notes(body: NotesRequest, request: Request):
     try:
         save_notes(uid_of(request), body.text)
         return {"ok": True}
-    except (OSError, sqlite3.Error):
+    except DB_ERRORS:
         raise HTTPException(status_code=503, detail="Notebook could not be saved.")
 
 
@@ -211,7 +298,7 @@ def reset_progress(request: Request):
         with DB_LOCK, closing(open_database()) as connection, connection:
             connection.execute("DELETE FROM progress WHERE uid = ?", (uid,))
             connection.execute("INSERT INTO notes (uid, text) VALUES (?, '') ON CONFLICT(uid) DO UPDATE SET text = ''", (uid,))
-    except (OSError, sqlite3.Error):
+    except DB_ERRORS:
         raise HTTPException(status_code=503, detail="Progress could not be reset.")
     return {"ok": True}
 
@@ -229,7 +316,9 @@ class UnlockRequest(BaseModel):
 def unlock(body: UnlockRequest, request: Request):
     # Load server-only data. Never return the answer table to the browser.
     try:
-        data = json.loads(case_file().read_text(encoding="utf-8"))
+        data = load_case()
+        if not isinstance(data, dict):
+            raise ValueError("Invalid case data")
         answers, files, hints = data["answers"], data["files"], data.get("hints", {})
         if not all(isinstance(value, dict) for value in (answers, files, hints)):
             raise ValueError("Invalid case data")
@@ -321,8 +410,8 @@ if DEV:
     def dev_status():
         case = load_case()
         return {
-            "privateData": case is not None and case_file() == CASE_PATH,
-            "sample": case is not None and case_file() == SAMPLE_PATH,
+            "privateData": case is not None and not using_sample(),
+            "sample": case is not None and using_sample(),
             "sampleAnswers": case["answers"] if case is not None and case_file() == SAMPLE_PATH else None,
             "solution": bool(case and case.get("solution")),
             "gemini": configured("GEMINI_API_KEY"),
@@ -362,7 +451,7 @@ if DEV:
 
 # ---------- the website (production: one origin for site and API) ----------
 
-if (STATIC_DIR / "index.html").is_file():
+if not ON_VERCEL and (STATIC_DIR / "index.html").is_file():
     if (STATIC_DIR / "assets").is_dir():
         app.mount("/assets", StaticFiles(directory=STATIC_DIR / "assets"), name="site-assets")
 

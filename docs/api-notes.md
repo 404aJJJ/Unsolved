@@ -3,8 +3,8 @@
 Companion to [api.md](api.md) (the contract) and [deploy-vultr.md](deploy-vultr.md) (the steps). This is what to know when running or changing the live API.
 
 ## Live setup
-- **API:** Vultr Cloud Compute, Docker compose: Caddy (HTTPS) → one container running `server/main.py` (FastAPI). Address: `https://45-76-235-124.sslip.io` (the server IP `45.76.235.124` written as an `sslip.io` name so Caddy can get a certificate without owning a domain).
-- **Website:** Vercel (project root `web`). `web/vercel.json` forwards `/api/*` to the API address, so the browser only talks to the Vercel origin and the player cookie works.
+- **API today:** Vultr Cloud Compute, Docker compose: Caddy (HTTPS) → one container running `server/main.py` (FastAPI). Address: `https://45-76-235-124.sslip.io` (the server IP `45.76.235.124` written as an `sslip.io` name so Caddy can get a certificate without owning a domain).
+- **Where it is going:** one Vercel project serves the site and the same FastAPI app (`vercel.json` services). Player data moves from the SQLite volume to Neon Postgres. See [deploy-vultr.md](deploy-vultr.md). The existing project (root directory `web`) still proxies `/api` to Vultr via `web/vercel.json`. Switch that root directory only after `DATABASE_URL` and `UNSOLVED_CASE_JSON` are set, or the live site loses its API.
 - **Check it any time:** `bash deploy/smoke-test.sh https://45-76-235-124.sslip.io` (17 checks, no secrets needed).
 
 ## Operating it (on the server, in `~/Unsolved`)
@@ -33,7 +33,7 @@ UTSA's campus DNS answers `NXDOMAIN` for `unsolved.work` (its answers carry no S
 - **Developer shortcuts are off.** `UNSOLVED_DEV` (the `/api/dev/*` Test Lab routes) and `UNSOLVED_TEST_PREVIEW` (the `?preview=true` image bypass) default to `0`, and compose pins both to `"0"`. The smoke test fails if either is on. The Test Lab itself exists only on the dev server.
 - **Evidence images.** All five are WebP (about 110-160 KB each; the PNG originals were about 1 MB). 01 and 02 are public: the site loads them as static files from `web/public/evidence/` (Vercel CDN, cached a day); `/api/files/01|02/image` still works and must stay identical. 04, 05 and 06 are locked: they only come from `/api/files/{id}/image`, return 403 until that player unlocks them, and are never cached (`no-store`). Never move the locked ones to a CDN or static folder; that makes them public.
 - **Single server.** SQLite on one volume is plenty for a demo. Destroying the server or running `docker compose down -v` deletes player data.
-- **Let's Encrypt and sslip.io.** `sslip.io` is a shared domain, so certificate rate limits are shared too. If issuance fails, retry later or point a real domain at the server and rerun `setup-vultr.sh <domain>`, then update `web/vercel.json`.
+- **Let's Encrypt and sslip.io.** `sslip.io` is a shared domain, so certificate rate limits are shared too. If issuance fails, retry later or point a real domain at the server and rerun `setup-vultr.sh <domain>`.
 
 ## Changing the API
 1. Update `docs/api.md` first, then `server/` and the mock in `web/dev-api/` (keep them in sync; the mock exists so `npm run dev` works without Python).

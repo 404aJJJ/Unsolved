@@ -1,6 +1,51 @@
-# Deploying to Vultr
+# Deploying
 
-One small Vultr Cloud Compute server runs everything: Caddy (HTTPS, port 80/443) in front of one container that serves the website and the Python API on the same origin. Players' progress and notebooks live in a SQLite volume, one game per browser.
+Host both the website and the API on the free tiers. Do not add a card, and do not upgrade either plan: when the free quota runs out they pause, they do not bill you.
+
+| Piece | Plan | If you outgrow it |
+|---|---|---|
+| Site + API | [Vercel Hobby](https://vercel.com/pricing) ($0, personal non-commercial) | Project pauses until the next month. Do not switch on Pro. |
+| Player saves | [Neon Free](https://neon.com/pricing) ($0, no card) | Compute suspends until next month. Do not upgrade to Launch or Scale. |
+| Grading and voices | Leave the keys unset | The game still runs: static grading, browser voice. Gemini and ElevenLabs are separate accounts and can bill on their own if those keys stay set. |
+
+Vultr is the hackathon server. Destroy it after the Vercel URL works. That is what stops the Vultr bill. A GoDaddy domain, if one was registered (`unsolved.work`), renews on its own schedule: turn off auto-renew in GoDaddy or let it expire. Pointing it at Vercel is optional and not required for the game.
+
+## Both on Vercel
+
+One Vercel project, repository root (not `web`). `vercel.json` builds two services and keeps them on one origin, so the player cookie stays first-party:
+
+- `web` — the Vite site
+- `api` — this same FastAPI app (`server/main.py`), as one Python function
+
+Vercel has no disk. Player progress and notebooks go to Neon Postgres. The case file is not in git, so its contents go in an environment variable.
+
+### One-time setup
+1. **Neon.** Sign up at [neon.tech](https://neon.tech) on the Free plan (no card). Create one project and copy the **pooled** connection string (`…-pooler…`). Do this on neon.tech, not from the Vercel Marketplace: the Marketplace install bills through Vercel. Stay on Free. Hitting the monthly limit suspends the database until next month.
+2. **Vercel project.** Use the Hobby plan. Import the GitHub repo. Set **Root Directory** to the repository root (`.` or blank). If this project was created earlier with Root Directory `web`, change it only after the variables in the next step are saved — that old setting publishes the site alone and proxies `/api` to Vultr.
+3. **Environment variables** (Production, and Preview if you want branch deploys to play for real):
+
+   | Name | Value |
+   |---|---|
+   | `DATABASE_URL` | the pooled Neon connection string |
+   | `UNSOLVED_CASE_JSON` | the entire `server/private/case-private.json` file |
+   | `GEMINI_API_KEY` | same key as `.env` (optional; grading falls back without it) |
+   | `ELEVEN_LABS_API_KEY` | same key as `.env` (optional; narration falls back without it) |
+
+   Leave `VITE_API_URL` unset. Do not set `UNSOLVED_DEV` or `UNSOLVED_TEST_PREVIEW`.
+4. **Deploy.** Push `main`, or from the repo root: `vercel --prod`.
+5. **Check.** `bash deploy/smoke-test.sh https://<your-app>.vercel.app` then log on, unlock a file, reload, and confirm the file stays open.
+6. **Destroy the Vultr server.** Customer portal → Products → that Cloud Compute instance (the one at `45.76.235.124`) → Settings (or the server menu) → Destroy. Also delete any snapshot, reserved IP, or extra volume on the same account; those bill on their own. Destroying stops new charges. Usage already accrued on the current invoice can still be due.
+
+Local `bash server/run-dev.sh` keeps using the SQLite file. Neon is used only when `DATABASE_URL` is a `postgres://` or `postgresql://` string.
+
+### What does not carry over
+- Games already saved on the Vultr disk stay there. Vercel starts with an empty Neon database.
+- Rate limits (12 reports and 20 narrations per minute) are counted inside one running function, so a burst can land on more than one instance.
+- `/api/narrate` and `/api/accuse` need the function's 60 second limit, which `vercel.json` sets. Audio and evidence images stay well under the 4.5 MB response cap.
+
+## Vultr (shut this off; do not create another)
+
+One small Vultr Cloud Compute server runs everything today: Caddy (HTTPS, port 80/443) in front of one container that serves the website and the Python API on the same origin. Players' progress and notebooks live in a SQLite volume, one game per browser. Those saves are not copied to Neon. The steps below are only a record of how that box was built.
 
 ## What you need
 - A Vultr account (you create it; billing is yours).
@@ -36,12 +81,8 @@ One small Vultr Cloud Compute server runs everything: Caddy (HTTPS, port 80/443)
    ```
    Open the site, log on, play. Narration and grading flags show `false` if a key is missing or still the `insert_...` placeholder.
 
-## Website on Vercel, API on Vultr
-The site can live on Vercel while only the API runs on Vultr. Vercel must **forward `/api/*` to the API** so the browser only ever talks to one origin; otherwise the per-player cookie is treated as a third-party cookie and blocked.
-1. Give the API an HTTPS name. No domain needed: for IP `45.76.235.124` use `45-76-235-124.sslip.io` and run `sudo bash deploy/setup-vultr.sh 45-76-235-124.sslip.io` on the server (Caddy gets the certificate).
-2. `web/vercel.json` already forwards `/api/*` to that name and falls back to `index.html` for every other path. If the API address changes, edit the `destination` there (Vercel cannot read environment variables in this file).
-3. Vercel: *Add New Project* → import the GitHub repo → **Root Directory `web`** → framework Vite (build `npm run build`, output `dist`) → Deploy. Leave `VITE_API_URL` unset.
-4. Test on the Vercel URL: log on, open a locked file's image, file a report. Progress must survive a page reload.
+## Old split: website on Vercel, API on Vultr
+This is what the existing Vercel project still does, as long as its Root Directory stays `web`. `web/vercel.json` forwards `/api/*` to `https://45-76-235-124.sslip.io`. Leave that project alone until the new one (root directory = the repo) is serving both. Changing the root directory is the cutover: after that, the root `vercel.json` sends `/api` to the FastAPI service and this proxy is unused. The Vultr box can be shut off once a reload on the Vercel URL still has the player's unlocks.
 
 ## Updating
 ```sh
@@ -71,7 +112,9 @@ Put Caddy or nginx in front for HTTPS. The API serves `web/dist` itself.
 | `GEMINI_API_KEY`, `GEMINI_MODEL` | - / `gemini-3.5-flash-lite` | Theory grading |
 | `ELEVEN_LABS_API_KEY`, `ELEVEN_LABS_MODEL` | - / `eleven_multilingual_v2` | Character voices (the voice IDs are in `server/voices.json`) |
 | `UNSOLVED_CASE_PATH` | `server/private/case-private.json` | Case data (`/secrets/case-private.json` in Docker) |
-| `UNSOLVED_DB_PATH` | `server/private/game.sqlite3` | Player data (`/data/game.sqlite3` in Docker) |
+| `UNSOLVED_DB_PATH` | `server/private/game.sqlite3` | Player data (`/data/game.sqlite3` in Docker). Ignored when `DATABASE_URL` is Postgres |
+| `DATABASE_URL` | unset | Vercel: Neon pooled connection string. Leave unset locally |
+| `UNSOLVED_CASE_JSON` | unset | Vercel: full case file, because `server/private/` is not deployed |
 | `UNSOLVED_STATIC_DIR` | `web/dist` | Built website to serve |
 | `UNSOLVED_ALLOWED_ORIGINS` | localhost dev origins | Only if the site is served from a different origin |
 | `UNSOLVED_DEV`, `UNSOLVED_TEST_PREVIEW` | `0`, `0` | Developer shortcuts; keep off in production |

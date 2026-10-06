@@ -41,6 +41,7 @@ Stack by lane: **React + Vite + TypeScript** for all frontend work (shell, apps,
 - [x] `POST /accuse`: culprit, evidence claims, free-text theory; returns verdict, per-claim feedback, reasoning-chain explanation (dev implementation in `web/dev-api/accuse.ts`, Python port pending)
 - [x] Gemini grading with structured JSON, prompt-injection guard, static fallback, cached verdicts (dev implementation; needs a real key to test live)
 - [~] Deploy to Vultr: Docker image, compose, Caddy and `deploy/setup-vultr.sh` ready (see docs/deploy-vultr.md); the server itself and the GoDaddy A record still need creating
+- [ ] Move site and API onto one Vercel project (root `vercel.json`). Code is ready; Neon (`DATABASE_URL`), `UNSOLVED_CASE_JSON`, and switching the project's root directory off `web` are still manual. Vultr keeps serving until that cutover.
 
 ### 4. Locks and minigames (build in this order)
 - [x] Generic lock flow (`web/src/minigames/useUnlock.ts` + `LockDialog`): server validation, progressive hints, no lockout, plain-text fallback

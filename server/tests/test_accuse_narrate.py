@@ -45,7 +45,10 @@ class Base(unittest.TestCase):
             p = patch(target, value)
             p.start()
             self.addCleanup(p.stop)
-        env = patch.dict("os.environ", {"GEMINI_API_KEY": "", "ELEVEN_LABS_API_KEY": ""})
+        env = patch.dict("os.environ", {
+            "GEMINI_API_KEY": "", "ELEVEN_LABS_API_KEY": "",
+            "DATABASE_URL": "", "POSTGRES_URL": "", "UNSOLVED_CASE_JSON": "",
+        })
         env.start()
         self.addCleanup(env.stop)
         accuse_logic._hits.clear()

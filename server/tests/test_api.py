@@ -24,7 +24,10 @@ class ApiTests(unittest.TestCase):
         self.patcher.start()
         self.addCleanup(self.patcher.stop)
         # Keys from a developer's real .env must never leak into tests (no live Gemini or ElevenLabs calls).
-        env_patcher = patch.dict("os.environ", {"GEMINI_API_KEY": "", "ELEVEN_LABS_API_KEY": ""})
+        env_patcher = patch.dict("os.environ", {
+            "GEMINI_API_KEY": "", "ELEVEN_LABS_API_KEY": "",
+            "DATABASE_URL": "", "POSTGRES_URL": "", "UNSOLVED_CASE_JSON": "",
+        })
         env_patcher.start()
         self.addCleanup(env_patcher.stop)
         database_patcher = patch("server.main.DATABASE_PATH", Path(self.temp.name) / "game.sqlite3")
@@ -60,6 +63,19 @@ class ApiTests(unittest.TestCase):
     def test_unknown_file(self):
         response = self.client.post("/api/unlock", json={"fileId": "99", "answer": "TEST"})
         self.assertEqual(response.status_code, 404)
+
+    def test_case_json_env_overrides_the_file(self):
+        payload = {
+            "answers": {id: "ENV" for id in ("04", "05", "06")},
+            "files": {id: {**self.doc, "id": id} for id in ("04", "05", "06")},
+            "hints": {},
+        }
+        with patch.dict("os.environ", {"UNSOLVED_CASE_JSON": json.dumps(payload)}):
+            response = self.client.post("/api/unlock", json={"fileId": "05", "answer": "env"})
+            self.assertEqual(response.status_code, 200)
+            self.assertTrue(response.json()["ok"])
+            self.assertFalse(self.client.post("/api/unlock", json={"fileId": "05", "answer": "TEST"}).json()["ok"])
+        self.assertTrue(self.client.post("/api/unlock", json={"fileId": "05", "answer": "TEST"}).json()["ok"])
 
     def test_missing_or_invalid_data(self):
         for contents in (None, "{}", "not JSON"):
