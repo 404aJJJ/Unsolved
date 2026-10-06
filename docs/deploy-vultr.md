@@ -6,7 +6,7 @@ Host both the website and the API on the free tiers. Do not add a card, and do n
 |---|---|---|
 | Site + API | [Vercel Hobby](https://vercel.com/pricing) ($0, personal non-commercial) | Project pauses until the next month. Do not switch on Pro. |
 | Player saves | [Neon Free](https://neon.com/pricing) ($0, no card) | Compute suspends until next month. Do not upgrade to Launch or Scale. |
-| Grading and voices | Leave the keys unset | The game still runs: static grading, browser voice. Gemini and ElevenLabs are separate accounts and can bill on their own if those keys stay set. |
+| Voices | Leave the key unset | The game still runs with the browser voice. ElevenLabs is a separate account and can bill on its own if that key stays set. |
 
 Vultr is the hackathon server. Destroy it after the Vercel URL works. That is what stops the Vultr bill. A GoDaddy domain, if one was registered (`unsolved.work`), renews on its own schedule: turn off auto-renew in GoDaddy or let it expire. Pointing it at Vercel is optional and not required for the game.
 
@@ -28,7 +28,6 @@ Vercel has no disk. Player progress and notebooks go to Neon Postgres. The case 
    |---|---|
    | `DATABASE_URL` | the pooled Neon connection string |
    | `UNSOLVED_CASE_JSON` | the entire `server/private/case-private.json` file |
-   | `GEMINI_API_KEY` | same key as `.env` (optional; grading falls back without it) |
    | `ELEVEN_LABS_API_KEY` | same key as `.env` (optional; narration falls back without it) |
 
    Leave `VITE_API_URL` unset. Do not set `UNSOLVED_DEV` or `UNSOLVED_TEST_PREVIEW`.
@@ -50,7 +49,7 @@ One small Vultr Cloud Compute server runs everything today: Caddy (HTTPS, port 8
 ## What you need
 - A Vultr account (you create it; billing is yours).
 - The two secret files that are **never in git**:
-  - `.env` with `GEMINI_API_KEY` and `ELEVEN_LABS_API_KEY` (start from `.env.example`). Both are optional: without them grading and narration degrade gracefully.
+  - `.env` with `ELEVEN_LABS_API_KEY` (start from `.env.example`). Optional: without it, narration uses the browser voice.
   - `server/private/case-private.json` (answers, locked files, solution, rubric).
 - Optional: a domain (GoDaddy track). Without one the game runs on `http://<server-ip>`.
 
@@ -76,10 +75,10 @@ One small Vultr Cloud Compute server runs everything today: Caddy (HTTPS, port 8
 5. **Domain (optional).** At GoDaddy add an **A record** for the name pointing at the server IP *before* step 4 (Caddy fetches the certificate on first start). `www` can be a CNAME to the same name.
 6. **Check it.**
    ```sh
-   curl -s http://127.0.0.1/api/config     # {"features":{"narration":true,"gradingAI":true}} when both keys are set
+   curl -s http://127.0.0.1/api/config     # {"features":{"narration":true}} when the ElevenLabs key is set
    docker compose -f deploy/docker-compose.yml logs --tail=50
    ```
-   Open the site, log on, play. Narration and grading flags show `false` if a key is missing or still the `insert_...` placeholder.
+   Open the site, log on, play. Narration shows `false` if the key is missing or still the `insert_...` placeholder.
 
 ## Old split: website on Vercel, API on Vultr
 This is what the existing Vercel project still does, as long as its Root Directory stays `web`. `web/vercel.json` forwards `/api/*` to `https://45-76-235-124.sslip.io`. Leave that project alone until the new one (root directory = the repo) is serving both. Changing the root directory is the cutover: after that, the root `vercel.json` sends `/api` to the FastAPI service and this proxy is unused. The Vultr box can be shut off once a reload on the Vercel URL still has the player's unlocks.
@@ -109,7 +108,6 @@ Put Caddy or nginx in front for HTTPS. The API serves `web/dist` itself.
 ## Configuration reference (environment variables)
 | Variable | Default | Purpose |
 |---|---|---|
-| `GEMINI_API_KEY`, `GEMINI_MODEL` | - / `gemini-3.5-flash-lite` | Theory grading |
 | `ELEVEN_LABS_API_KEY`, `ELEVEN_LABS_MODEL` | - / `eleven_multilingual_v2` | Character voices (the voice IDs are in `server/voices.json`) |
 | `UNSOLVED_CASE_PATH` | `server/private/case-private.json` | Case data (`/secrets/case-private.json` in Docker) |
 | `UNSOLVED_DB_PATH` | `server/private/game.sqlite3` | Player data (`/data/game.sqlite3` in Docker). Ignored when `DATABASE_URL` is Postgres |

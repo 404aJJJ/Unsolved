@@ -1,6 +1,6 @@
 """Unsolved.exe API. Run from the repository root: uvicorn server.main:app --port 8000
 
-Endpoints: health, config, unlock, progress, notes, evidence images, accuse (Gemini grading) and narrate (ElevenLabs).
+Endpoints: health, config, unlock, progress, notes, evidence images, accuse and narrate (ElevenLabs).
 Every player gets their own game: a random `uid` cookie keys their unlocked files and notebook.
 Locally that database is a SQLite file. On Vercel it is Neon Postgres when DATABASE_URL is set.
 On Vultr one process also serves the built website (web/dist). On Vercel the site is a separate static service.
@@ -24,11 +24,11 @@ from pydantic import BaseModel, Field
 if __package__:
     from . import accuse as accuse_logic
     from . import narrate as narrate_logic
-    from .envfile import configured, load_env_files
+    from .envfile import load_env_files
 else:
     import accuse as accuse_logic
     import narrate as narrate_logic
-    from envfile import configured, load_env_files
+    from envfile import load_env_files
 
 try:
     from psycopg import Error as PostgresError
@@ -241,7 +241,7 @@ def health():
 @app.get("/api/config")
 def config():
     """What this server can do. The site hides or degrades features whose flag is false."""
-    return {"features": {"narration": narrate_logic.configured(), "gradingAI": configured("GEMINI_API_KEY")}}
+    return {"features": {"narration": narrate_logic.configured()}}
 
 
 # ---------- notebook ----------
@@ -362,17 +362,16 @@ def evidence_image(file_id: str, request: Request, preview: bool = False):
     return FileResponse(image_path, media_type="image/webp", headers=headers)
 
 
-# ---------- final report (Gemini) ----------
+# ---------- final report ----------
 
 class AccuseRequest(BaseModel):
     culprit: str = Field(default="", max_length=8)
     evidence: list[str] = Field(default_factory=list, max_length=8)
-    theory: str = Field(default="", max_length=accuse_logic.MAX_THEORY * 2)
     timedOut: bool = False
 
 
 @app.post("/api/accuse")
-async def accuse(body: AccuseRequest, request: Request):
+def accuse(body: AccuseRequest, request: Request):
     if accuse_logic.rate_limited(client_key(request)):
         return JSONResponse(status_code=429, content={"error": "Too many reports. Wait a minute and try again."})
     if not body.culprit and not body.timedOut:
@@ -381,9 +380,7 @@ async def accuse(body: AccuseRequest, request: Request):
     solution = case.get("solution") if case else None
     if not solution:
         return JSONResponse(status_code=503, content={"error": "Case data missing or invalid."})
-    return await accuse_logic.handle_accuse(
-        body.culprit, body.evidence, body.theory, body.timedOut, solution, getattr(app.state, "http_transport", None)
-    )
+    return accuse_logic.handle_accuse(body.culprit, body.evidence, body.timedOut, solution)
 
 
 # ---------- narration (ElevenLabs) ----------
@@ -414,8 +411,6 @@ if DEV:
             "sample": case is not None and using_sample(),
             "sampleAnswers": case["answers"] if case is not None and case_file() == SAMPLE_PATH else None,
             "solution": bool(case and case.get("solution")),
-            "gemini": configured("GEMINI_API_KEY"),
-            "model": os.environ.get("GEMINI_MODEL") or "gemini-3.5-flash-lite",
             "elevenLabs": narrate_logic.configured(),
             "voices": narrate_logic.speakers(),
         }

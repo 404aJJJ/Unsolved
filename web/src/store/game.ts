@@ -11,7 +11,6 @@ export type FiledReport = Verdict & { elapsed: number; accused: string; cited: s
 export interface ReportDraft {
   culprit: string
   evidence: string[]
-  theory: string
 }
 
 interface GameState {
@@ -48,7 +47,7 @@ interface GameState {
   reset: () => void
 }
 
-const initial = { unlocked: {}, attempts: {}, hints: {}, opened: [] as FileId[], notes: '', mode: 'timed' as GameMode, started: false, deadline: null as number | null, timeUp: false, elapsed: 0, unlockedAt: {}, suspectNotes: {}, draft: { culprit: '', evidence: [], theory: '' } as ReportDraft, reportStarted: false, result: null as FiledReport | null }
+const initial = { unlocked: {}, attempts: {}, hints: {}, opened: [] as FileId[], notes: '', mode: 'timed' as GameMode, started: false, deadline: null as number | null, timeUp: false, elapsed: 0, unlockedAt: {}, suspectNotes: {}, draft: { culprit: '', evidence: [] } as ReportDraft, reportStarted: false, result: null as FiledReport | null }
 
 export const useGame = create<GameState>()(
   persist(
@@ -127,7 +126,7 @@ export const useGame = create<GameState>()(
       // Belt and braces for any other stale save: never let a bad shape reach the form.
       merge: (persisted, current) => {
         const merged = { ...current, ...(persisted as Partial<GameState>) }
-        if (!Array.isArray(merged.draft?.evidence)) merged.draft = { culprit: '', evidence: [], theory: '' }
+        if (!Array.isArray(merged.draft?.evidence)) merged.draft = { culprit: '', evidence: [] }
         return merged
       },
     },

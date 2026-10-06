@@ -83,7 +83,6 @@ export function TestLab() {
       <div className="tl__status">
         <span>{light(status?.privateData || status?.sample)} {status?.sample ? 'SAMPLE case data (fake)' : 'private data'}</span>
         <span>{light(status?.solution)} solution block</span>
-        <span>{light(status?.gemini)} Gemini key{status?.gemini ? ` (${status.model})` : ''}</span>
         <span>{light(status?.elevenLabs)} ElevenLabs key</span>
         {status === null && <em>dev API unreachable (production build?)</em>}
       </div>
@@ -96,7 +95,7 @@ export function TestLab() {
 
       <Section title="Integrations">
         <span className="tl__note">
-          API: {mockApiActive() ? 'built-in mock (/mock-api)' : API_BASE || 'same origin (dev mock or proxy)'} · {api.status} · narration {api.features.narration ? 'server voice' : 'browser voice'} · grading AI {api.features.gradingAI ? 'on' : 'off'}
+          API: {mockApiActive() ? 'built-in mock (/mock-api)' : API_BASE || 'same origin (dev mock or proxy)'} · {api.status} · narration {api.features.narration ? 'server voice' : 'browser voice'}
         </span>
         <button className="btn" onClick={() => setMockApi(!mockApiActive())} title="Dev only. Switches every request to the in-memory mock and reloads the page.">
           Mock API (no Python): {mockApiActive() ? 'ON, turn off' : 'off, turn on'}

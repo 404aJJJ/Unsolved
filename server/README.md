@@ -39,7 +39,7 @@ To forward somewhere else, put `API_PROXY_TARGET=http://host:port` in the repo-r
 
 `run-dev.sh` starts Python with `UNSOLVED_DEV=1` (and `UNSOLVED_ALLOW_SAMPLE=1` when the private file is missing) so the Test Lab works against it (never set that on a public server). The `?preview=true` image bypass needs `UNSOLVED_TEST_PREVIEW=1` and is off by default.
 
-Keys: the server reads `GEMINI_API_KEY` and `ELEVEN_LABS_API_KEY` from the repo-root `.env` (real environment variables win).
+Keys: the server reads `ELEVEN_LABS_API_KEY` from the repo-root `.env` (real environment variables win).
 
 ## Troubleshooting
 | What you see | Cause and fix |
@@ -55,11 +55,10 @@ Keys: the server reads `GEMINI_API_KEY` and `ELEVEN_LABS_API_KEY` from the repo-
 | Port 8000 or 5173 already in use | Stop the other process (`lsof -i :8000`). If you moved the API, set `API_PROXY_TARGET` in `.env`. |
 | Progress seems shared or lost between runs | Each browser has its own game via a cookie; clearing cookies starts a new one. Data lives in `server/private/game.sqlite3` (delete it to reset everything). |
 | Test Lab buttons say dev routes missing | The API wasn't started with `UNSOLVED_DEV=1` (use `run-dev.sh`). |
-| Report grading says "AI grading is switched off" | No real `GEMINI_API_KEY` in the repo-root `.env`; restart Python after adding it. |
 
 ## What each endpoint does
 `/api/health`, `/api/config` (feature flags), `/api/unlock`, `/api/progress` (+ `/reset`), `/api/notes`,
-`/api/files/{id}/image`, `/api/accuse` (final report, Gemini grading in `server/accuse.py`) and `/api/narrate`
+`/api/files/{id}/image`, `/api/accuse` (final report in `server/accuse.py`) and `/api/narrate`
 (ElevenLabs, `server/narrate.py`). Each browser gets a random `uid` cookie and its own progress and notebook.
 The full contract is `docs/api.md`.
 

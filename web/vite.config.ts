@@ -46,8 +46,7 @@ function mockApi(env: Record<string, string>, alsoAtApi: boolean): Plugin {
       // What the backend can do. The client hides or degrades features whose flag is false.
       use('/api/config', (_req, res) => {
         res.setHeader('Content-Type', 'application/json')
-        const gemini = !!env.GEMINI_API_KEY && !env.GEMINI_API_KEY.startsWith('insert_')
-        res.end(JSON.stringify({ features: { narration: narrationConfigured(env), gradingAI: gemini } }))
+        res.end(JSON.stringify({ features: { narration: narrationConfigured(env) } }))
       })
 
       use('/api/narrate', (req, res) => {
@@ -104,7 +103,7 @@ function mockApi(env: Record<string, string>, alsoAtApi: boolean): Plugin {
             res.statusCode = 400
             return res.end(JSON.stringify({ error: 'bad json' }))
           }
-          const out = await handleAccuse(body, { solution: data.solution, env, ip: req.socket.remoteAddress ?? 'local' })
+          const out = await handleAccuse(body, { solution: data.solution, ip: req.socket.remoteAddress ?? 'local' })
           res.statusCode = out.status
           res.end(JSON.stringify(out.json))
         })
@@ -122,15 +121,12 @@ function mockApi(env: Record<string, string>, alsoAtApi: boolean): Plugin {
         } catch {
           /* missing file is a valid status */
         }
-        const key = env.GEMINI_API_KEY
         res.end(
           JSON.stringify({
             privateData,
             sample: usingSample(),
             sampleAnswers: usingSample() ? readPrivate().answers : undefined,
             solution,
-            gemini: !!key && !key.startsWith('insert_'),
-            model: env.GEMINI_MODEL || 'gemini-3.5-flash-lite',
             elevenLabs: narrationConfigured(env),
             voices: speakers(env),
           }),

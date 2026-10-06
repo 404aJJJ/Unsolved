@@ -1,4 +1,4 @@
-"""Sessions, config, the final report (Gemini) and narration (ElevenLabs), using fake solutions and mock HTTP transports."""
+"""Sessions, config, the final report and narration (ElevenLabs), using fake solutions and mock HTTP transports."""
 import json
 import tempfile
 import unittest
@@ -21,12 +21,7 @@ SOLUTION = {
     "chain": ["step one", "step two"],
     "rubric": "SECRET RUBRIC TEXT",
 }
-LONG = "Margaret was alone in the room and the log contradicts her, and she ordered the imitation stone herself."
-WIN = {"culprit": "mw", "evidence": ["04", "02", "06"], "theory": LONG}
-
-
-def gemini_reply(score, feedback="Nicely reasoned."):
-    return {"candidates": [{"content": {"parts": [{"text": json.dumps({"score": score, "feedback": feedback})}]}}]}
+WIN = {"culprit": "mw", "evidence": ["04", "02", "06"]}
 
 
 class Base(unittest.TestCase):
@@ -52,7 +47,6 @@ class Base(unittest.TestCase):
         env.start()
         self.addCleanup(env.stop)
         accuse_logic._hits.clear()
-        accuse_logic._theory_cache.clear()
         narrate_logic._hits.clear()
         narrate_logic._cache.clear()
         self.client = TestClient(app)
@@ -105,7 +99,7 @@ class SampleCaseTests(Base):
             self.assertEqual(ok["file"]["id"], "05")
             bad = self.client.post("/api/unlock", json={"fileId": "05", "answer": "nope"}).json()
             self.assertFalse(bad["ok"])
-            report = self.client.post("/api/accuse", json={"culprit": "bm", "evidence": ["06", "05", "04"], "theory": "x"}).json()
+            report = self.client.post("/api/accuse", json={"culprit": "bm", "evidence": ["06", "05", "04"]}).json()
             self.assertEqual(report["verdict"], "solved")
             self.assertIn("SAMPLE", report["explanation"][0])
 
@@ -126,11 +120,9 @@ class SampleCaseTests(Base):
 
 class ConfigTests(Base):
     def test_flags_follow_the_keys(self):
-        self.assertEqual(self.client.get("/api/config").json(), {"features": {"narration": False, "gradingAI": False}})
-        with patch.dict("os.environ", {"GEMINI_API_KEY": "k", "ELEVEN_LABS_API_KEY": "k"}):
-            self.assertEqual(self.client.get("/api/config").json(), {"features": {"narration": True, "gradingAI": True}})
-        with patch.dict("os.environ", {"GEMINI_API_KEY": "insert_api_key_here"}):
-            self.assertFalse(self.client.get("/api/config").json()["features"]["gradingAI"])
+        self.assertEqual(self.client.get("/api/config").json(), {"features": {"narration": False}})
+        with patch.dict("os.environ", {"ELEVEN_LABS_API_KEY": "k"}):
+            self.assertEqual(self.client.get("/api/config").json(), {"features": {"narration": True}})
 
     def test_developer_routes_do_not_exist_in_production(self):
         for path in ("/api/dev/status", "/api/dev/files", "/api/dev/scenarios"):
@@ -139,16 +131,15 @@ class ConfigTests(Base):
 
 
 class AccuseTests(Base):
-    def test_solved_without_ai_is_scored_and_explained(self):
+    def test_solved_report_is_explained(self):
         r = self.client.post("/api/accuse", json=WIN).json()
-        self.assertEqual((r["verdict"], r["culprit"], r["explanation"]), ("solved", "mw", ["step one", "step two"]))
-        self.assertFalse(r["theory"]["graded"])
-        self.assertEqual(r["theory"]["source"], "offline")
-        self.assertEqual(r["score"], 100)  # 40 + 15 + 15 + 15 of the 85 gradable points
+        self.assertEqual((r["verdict"], r["culprit"], r["explanation"], r["rating"]), ("solved", "mw", ["step one", "step two"], "Case solved"))
+        self.assertNotIn("theory", r)
+        self.assertNotIn("score", r)
 
-    def test_acceptable_evidence_scores_slightly_less(self):
+    def test_acceptable_evidence_still_solves(self):
         r = self.client.post("/api/accuse", json={**WIN, "evidence": ["04", "05"]}).json()
-        self.assertEqual((r["verdict"], r["score"]), ("solved", 92))  # (40 + 15 + 15 + 8) / 85 * 100
+        self.assertEqual(r["verdict"], "solved")
 
     def test_wrong_culprit_is_final_and_reveals_the_truth(self):
         r = self.client.post("/api/accuse", json={**WIN, "culprit": "nb"}).json()
@@ -169,73 +160,12 @@ class AccuseTests(Base):
         self.assertEqual((r["verdict"], r["rating"]), ("incorrect", "Out of time"))
 
     def test_invalid_requests_are_rejected(self):
-        for body in ({"culprit": "mw", "evidence": "04"}, {"culprit": "x" * 20}, {"culprit": "mw", "theory": "x" * 4000}):
+        for body in ({"culprit": "mw", "evidence": "04"}, {"culprit": "x" * 20}):
             self.assertEqual(self.client.post("/api/accuse", json=body).status_code, 422)
 
     def test_missing_solution_is_a_503(self):
         with patch("server.main.load_case", return_value={"files": {}}):
             self.assertEqual(self.client.post("/api/accuse", json=WIN).status_code, 503)
-
-    def test_gemini_grades_the_theory_and_secrets_stay_server_side(self):
-        seen = {}
-
-        def handler(request):
-            seen["key"] = request.headers["x-goog-api-key"]
-            seen["body"] = json.loads(request.content)
-            return httpx.Response(200, json=gemini_reply(80, "Good."))
-
-        self.mock_http(handler)
-        with patch.dict("os.environ", {"GEMINI_API_KEY": "secret-key"}):
-            r = self.client.post("/api/accuse", json=WIN).json()
-        self.assertEqual(r["theory"], {"graded": True, "score": 80, "feedback": "Good.", "source": "gemini"})
-        self.assertEqual(seen["key"], "secret-key")
-        self.assertIn("SECRET RUBRIC TEXT", json.dumps(seen["body"]["systemInstruction"]))
-        user_text = seen["body"]["contents"][0]["parts"][0]["text"]
-        self.assertNotIn("SECRET RUBRIC TEXT", user_text)
-        self.assertIn("<player_theory>", user_text)
-        self.assertNotIn("secret-key", json.dumps(r))
-        self.assertNotIn("SECRET RUBRIC TEXT", json.dumps(r))
-
-    def test_short_theory_is_capped_and_scores_are_clamped(self):
-        self.mock_http(lambda request: httpx.Response(200, json=gemini_reply(100)))
-        with patch.dict("os.environ", {"GEMINI_API_KEY": "k"}):
-            short = self.client.post("/api/accuse", json={**WIN, "theory": "Margaret swapped the stone ok."}).json()
-            self.assertEqual(short["theory"]["score"], 60)
-        self.mock_http(lambda request: httpx.Response(200, json=gemini_reply(9999)))
-        with patch.dict("os.environ", {"GEMINI_API_KEY": "k"}):
-            long = self.client.post("/api/accuse", json={**WIN, "theory": LONG + " Extra words."}).json()
-            self.assertEqual(long["theory"]["score"], 100)
-
-    def test_every_gemini_failure_falls_back_offline(self):
-        cases = {
-            "http error": lambda request: httpx.Response(500, text="boom"),
-            "bad json": lambda request: httpx.Response(200, json={"candidates": [{"content": {"parts": [{"text": "not json"}]}}]}),
-            "no candidates": lambda request: httpx.Response(200, json={}),
-            "raises": lambda request: (_ for _ in ()).throw(httpx.ConnectError("down")),
-        }
-        for name, handler in cases.items():
-            self.mock_http(handler)
-            accuse_logic._theory_cache.clear()
-            with patch.dict("os.environ", {"GEMINI_API_KEY": "k"}):
-                r = self.client.post("/api/accuse", json=WIN).json()
-            self.assertEqual((name, r["verdict"], r["theory"]["source"]), (name, "solved", "offline"))
-
-    def test_identical_reports_hit_gemini_once(self):
-        calls = []
-        self.mock_http(lambda request: calls.append(1) or httpx.Response(200, json=gemini_reply(70)))
-        with patch.dict("os.environ", {"GEMINI_API_KEY": "k"}):
-            for _ in range(3):
-                self.client.post("/api/accuse", json=WIN)
-        self.assertEqual(len(calls), 1)
-
-    def test_wrong_accusation_is_graded_with_context(self):
-        seen = {}
-        self.mock_http(lambda request: seen.update(body=json.loads(request.content)) or httpx.Response(200, json=gemini_reply(10, "Not Noah.")))
-        with patch.dict("os.environ", {"GEMINI_API_KEY": "k"}):
-            r = self.client.post("/api/accuse", json={**WIN, "culprit": "nb"}).json()
-        self.assertEqual(r["theory"]["feedback"], "Not Noah.")
-        text = seen["body"]["contents"][0]["parts"][0]["text"]
-        self.assertIn("Accused: Noah Brown (incorrect)", text)
 
     def test_reports_are_rate_limited(self):
         statuses = [self.client.post("/api/accuse", json=WIN).status_code for _ in range(14)]

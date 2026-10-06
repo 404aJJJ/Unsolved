@@ -101,7 +101,7 @@ export function BootScreen({ onDone }: { onDone: () => void }) {
       }
       mark(net, 'ok')
       if (import.meta.env.DEV && mockApiActive()) add('Dev: using the built-in mock API (no Python). Turn it off in the Test Lab.', 'warn')
-      await flavour(`Server features: narration=${features.narration ? 'server voice' : 'browser voice'}, grading-ai=${features.gradingAI ? 'on' : 'off'}`, 'ok', 120)
+      await flavour(`Server features: narration=${features.narration ? 'server voice' : 'browser voice'}`, 'ok', 120)
       if (!live) return
 
       // REAL: warm the public evidence images and fonts.

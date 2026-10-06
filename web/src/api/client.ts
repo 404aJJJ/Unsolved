@@ -34,16 +34,13 @@ export async function unlockFile(fileId: FileId, answer: string, attempt: number
 export interface AccuseRequest {
   culprit: string
   evidence: string[] // up to three record ids
-  theory: string
   timedOut?: boolean // filed automatically when the 30:00 limit ran out; an empty report is allowed
 }
 
 export interface Verdict {
   verdict: 'solved' | 'partial' | 'incorrect'
-  score: number
   rating: string
   culprit: string // the real culprit's suspect id, revealed because the report is final
-  theory: { graded: boolean; score: number | null; feedback: string; source: 'gemini' | 'offline' }
   explanation: string[]
 }
 
@@ -67,8 +64,6 @@ export interface DevStatus {
   sample?: boolean // the fake sample case is in use (no private file)
   sampleAnswers?: Record<string, string> // fake answers, only ever present with the sample
   solution: boolean
-  gemini: boolean
-  model: string
   elevenLabs: boolean
   voices?: Record<string, { name: string; voice: string }> // character -> ElevenLabs voice
 }
@@ -81,7 +76,7 @@ export async function devStatus(): Promise<DevStatus | null> {
 export interface DevScenario {
   label: string
   note: string
-  draft: { culprit: string; evidence: string[]; theory: string }
+  draft: { culprit: string; evidence: string[] }
 }
 
 export async function devScenarios(): Promise<DevScenario[] | null> {

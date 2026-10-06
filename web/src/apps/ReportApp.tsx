@@ -9,7 +9,6 @@ import { openFile } from './files'
 import { fileReport } from './fileReport'
 import { useSession } from '../store/session'
 
-const MAX_THEORY = 1500
 const MAX_RECORDS = 3
 
 export function ReportApp() {
@@ -38,7 +37,7 @@ function Intro({ count, onBegin }: { count: number; onBegin: () => void }) {
   return (
     <div className="report">
       <h2>Investigation report</h2>
-      <p className="report__lead">Name who you believe took the diamond, cite the records that support it, and explain your theory. You can file a report at any time, but you can only cite records you have recovered.</p>
+      <p className="report__lead">Name who you believe took the diamond and cite the records that support it. You can file a report at any time, but you can only cite records you have recovered.</p>
       <ul className="report__checklist">
         {FILES.map((f) => {
           const ok = !f.lock || !!unlocked[f.id]
@@ -79,7 +78,7 @@ function Form() {
   const [error, setError] = useState('')
 
   // When time has run out the report may be filed as it stands.
-  const complete = timeUp || (!!draft.culprit && draft.evidence.length > 0 && draft.theory.trim().length > 0)
+  const complete = timeUp || (!!draft.culprit && draft.evidence.length > 0)
   const unlocked = useGame((s) => s.unlocked)
   const recovered = (id: string) => !FILES.find((f) => f.id === id)?.lock || !!unlocked[id as FileId]
 
@@ -153,28 +152,13 @@ function Form() {
         </div>
       </section>
 
-      <section className="rsec">
-        <h3>3. Explain your theory</h3>
-        <textarea
-          className="field rtheory"
-          value={draft.theory}
-          maxLength={MAX_THEORY}
-          onChange={(e) => setDraft({ theory: e.target.value })}
-          placeholder="Who did it, how, and what in the records proves it."
-          aria-label="Your theory"
-        />
-        <div className="rcount">
-          {draft.theory.length}/{MAX_THEORY}
-        </div>
-      </section>
-
       {error && <p className="uac__error">{error}</p>}
       <div className="report__foot">
         <span className="uac__muted">
           Filing a report closes the case. You will see how it really happened, right or wrong.
         </span>
         <button className="btn btn--primary" disabled={!complete || busy} onClick={submit}>
-          {busy ? 'Grading…' : 'File report'}
+          {busy ? 'Filing…' : 'File report'}
         </button>
       </div>
     </div>
@@ -196,7 +180,6 @@ function Result({ r }: { r: NonNullable<ReturnType<typeof useGame.getState>['res
   return (
     <div className="report report--result">
       <div className={`verdict verdict--${banner.tone}`}>
-        <div className="verdict__score">{r.score}</div>
         <div>
           <div className="verdict__rating">{banner.title}</div>
           <div className="verdict__meta">
@@ -229,12 +212,6 @@ function Result({ r }: { r: NonNullable<ReturnType<typeof useGame.getState>['res
           <li key={i}>{line}</li>
         ))}
       </ol>
-
-      <h3>On your theory</h3>
-      <p className={`rtheory-result ${r.theory.graded ? '' : 'rtheory-result--off'}`}>
-        {r.theory.graded && <strong>{r.theory.score}/100 · </strong>}
-        {r.theory.feedback}
-      </p>
 
       <div className="report__foot">
         <span className="uac__muted" />
